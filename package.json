@@ -2,13 +2,13 @@
   "scripts": {
     "build": "jspm build src/main.js dist/index.js --minify --format umd --global-name Task",
     "build-dev": "jspm bundle --minify src/main.js - '[src/**/*]' + babel-plugin-transform-react-jsx + css dist/dev-bundle.js",
-    "serve": "http-server ."
+    "serve": "http-server -c-1 ."
   },
   "jspm": {
     "name": "alkindi-task-playfair",
     "main": "index.js",
     "dependencies": {
-      "alkindi-task-lib": "github:France-ioi/alkindi-task-lib@master",
+      "alkindi-task-lib": "github:France-ioi/alkindi-task-lib@^1.0.2",
       "babel-plugin-transform-react-jsx": "npm:babel-plugin-transform-react-jsx@^6.8.0",
       "bootstrap": "github:twbs/bootstrap@^3.3.7",
       "classnames": "npm:classnames@^2.2.5",
@@ -43,7 +43,7 @@
       "react": "npm:react@^15.0.1",
       "react-dnd": "npm:react-dnd@^2.1.4",
       "react-dom": "npm:react-dom@^15.4.1",
-      "redux": "npm:redux@^3.6.0",
+      "redux": "npm:redux@^3.0.0",
       "redux-saga": "npm:redux-saga@^0.12.1",
       "stream": "npm:jspm-nodelibs-stream@^0.2.0",
       "string_decoder": "npm:jspm-nodelibs-string_decoder@^0.2.0",

@@ -44,7 +44,7 @@ SystemJS.config({
     "github:*/*.json"
   ],
   map: {
-    "alkindi-task-lib": "github:France-ioi/alkindi-task-lib@master",
+    "alkindi-task-lib": "github:France-ioi/alkindi-task-lib@1.0.2",
     "assert": "npm:jspm-nodelibs-assert@0.2.0",
     "babel-plugin-transform-react-jsx": "npm:babel-plugin-transform-react-jsx@6.8.0",
     "bootstrap": "github:twbs/bootstrap@3.3.7",
@@ -55,7 +55,7 @@ SystemJS.config({
     "crypto": "npm:jspm-nodelibs-crypto@0.2.0",
     "domain": "npm:jspm-nodelibs-domain@0.2.0",
     "epic-component": "npm:epic-component@0.3.1",
-    "epic-linker": "npm:epic-linker@1.0.6",
+    "epic-linker": "npm:epic-linker@1.0.7",
     "events": "npm:jspm-nodelibs-events@0.2.0",
     "flatten": "npm:flatten@1.0.2",
     "font-awesome": "npm:font-awesome@4.7.0",
@@ -83,33 +83,10 @@ SystemJS.config({
     "zlib": "npm:jspm-nodelibs-zlib@0.2.2"
   },
   packages: {
-    "github:France-ioi/alkindi-task-lib@master": {
-      "map": {
-        "babel-runtime": "npm:babel-runtime@6.20.0",
-        "es5-shim": "npm:es5-shim@4.5.9",
-        "classnames": "npm:classnames@2.2.5",
-        "es6-promise": "npm:es6-promise@4.0.5",
-        "epic-linker": "npm:epic-linker@1.0.6",
-        "array.prototype.fill": "npm:array.prototype.fill@1.0.2",
-        "epic-component": "npm:epic-component@0.3.1",
-        "es6-shim": "npm:es6-shim@0.35.2",
-        "html5shiv": "npm:html5shiv@3.7.3",
-        "es5-sham-ie8": "npm:es5-sham-ie8@1.0.1",
-        "rc-tooltip": "npm:rc-tooltip@3.4.2",
-        "object.assign": "npm:object.assign@4.0.4",
-        "react-dnd-html5-backend": "npm:react-dnd-html5-backend@2.1.2",
-        "react-redux": "npm:react-redux@5.0.1"
-      }
-    },
     "npm:babel-runtime@6.20.0": {
       "map": {
         "regenerator-runtime": "npm:regenerator-runtime@0.10.1",
         "core-js": "npm:core-js@2.4.1"
-      }
-    },
-    "npm:epic-linker@1.0.6": {
-      "map": {
-        "babel-runtime": "npm:babel-runtime@6.20.0"
       }
     },
     "npm:redux@3.6.0": {
@@ -584,6 +561,29 @@ SystemJS.config({
     "npm:react-dnd-html5-backend@2.1.2": {
       "map": {
         "lodash": "npm:lodash@4.17.2"
+      }
+    },
+    "github:France-ioi/alkindi-task-lib@1.0.2": {
+      "map": {
+        "array.prototype.fill": "npm:array.prototype.fill@1.0.2",
+        "es5-sham-ie8": "npm:es5-sham-ie8@1.0.1",
+        "classnames": "npm:classnames@2.2.5",
+        "es6-shim": "npm:es6-shim@0.35.2",
+        "es6-promise": "npm:es6-promise@4.0.5",
+        "html5shiv": "npm:html5shiv@3.7.3",
+        "es5-shim": "npm:es5-shim@4.5.9",
+        "babel-runtime": "npm:babel-runtime@6.20.0",
+        "react-redux": "npm:react-redux@5.0.1",
+        "epic-component": "npm:epic-component@0.3.1",
+        "object.assign": "npm:object.assign@4.0.4",
+        "epic-linker": "npm:epic-linker@1.0.7",
+        "react-dnd-html5-backend": "npm:react-dnd-html5-backend@2.1.2",
+        "rc-tooltip": "npm:rc-tooltip@3.4.2"
+      }
+    },
+    "npm:epic-linker@1.0.7": {
+      "map": {
+        "babel-runtime": "npm:babel-runtime@6.20.0"
       }
     }
   }
