@@ -91,7 +91,7 @@ export default EpicComponent(self => {
             <div className='dialogLine'>
                   <span className='dialogLabel'>Nouvelle valeur :</span>
                   <span className='dialogLetterSubst'>
-                     <input ref={refInput} type='text' maxLength='1' value={letter} onKeyDown={keyDown} onChange={changeLetter} />
+                     <input ref={refInput} type='text' maxLength='1' value={letter || ''} onKeyDown={keyDown} onChange={changeLetter} />
                   </span>
             </div>
             <div className='dialogLine'>

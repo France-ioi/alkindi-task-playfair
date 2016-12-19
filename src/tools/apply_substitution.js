@@ -89,9 +89,9 @@ export const Component = EpicComponent(self => {
 
 export const compute = function (state, scope) {
    const {nbLettersPerRow} = state;
-   const {alphabet, inputSubstitution, inputText} = scope;
-   scope.letterInfos = getTextAsBigrams(inputText, alphabet).letterInfos;
-   scope.outputText = applySubstitution(alphabet, inputSubstitution, scope.letterInfos);
+   const {bigramAlphabet, inputSubstitution, inputText} = scope;
+   scope.letterInfos = getTextAsBigrams(inputText, bigramAlphabet).letterInfos;
+   scope.outputText = applySubstitution(inputSubstitution, scope.letterInfos);
    scope.lineStartCols = getCellsWrapping(scope.outputText, nbLettersPerRow);
 };
 

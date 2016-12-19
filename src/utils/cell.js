@@ -10,17 +10,6 @@ export const makeAlphabet = function (chars) {
    for (var iSymbol = 0; iSymbol < size; iSymbol++) {
       ranks[symbols[iSymbol]] = iSymbol;
    }
-   const cellFromInput = function (symbol, locked) {
-      // This function is not made available, but could be useful to
-      // export in alphabet.
-      if (symbol === undefined || symbol === '')
-         return {q: 'unknown'};
-      if (symbol in ranks) {
-         const rank = ranks[symbol];
-         return {l: rank, q: locked ? 'guess': 'locked'};
-      }
-      return {c: symbol};
-   };
    return {chars, symbols, size, ranks};
 };
 

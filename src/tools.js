@@ -7,18 +7,58 @@ import EditSubstitution from './tools/edit_substitution';
 import ApplySubstitution from './tools/apply_substitution';
 
 import {makeAlphabet} from './utils/cell';
-import {mostFrequentFrench, decodeBigram} from './utils/bigram';
+import {makeBigramAlphabet} from './utils/bigram';
 
 const alphabet = makeAlphabet('ABCDEFGHIJKLMNOPQRSTUVXYZ');
+const bigramAlphabet = makeBigramAlphabet(alphabet);
 
 export const makeRootScope = function (task) {
    return {
       ...task,
       alphabet,
+      bigramAlphabet,
       cipheredText: task.cipher_text,
-      hintsGrid: task.hints
+      hintsGrid: task.hints,
+      mostFrequentFrench: mostFrequentFrench.map(function (p) {
+         return {...bigramAlphabet.bigrams[p.v], r: p.r};
+      })
    };
 };
+
+const mostFrequentFrench = [
+   { v: "ES", r: 3.1 },
+   { v: "LE", r: 2.2 },
+   { v: "DE", r: 2.2 },
+   { v: "RE", r: 2.1 },
+   { v: "EN", r: 2.1 },
+   { v: "ON", r: 1.6 },
+   { v: "NT", r: 1.6 },
+   { v: "ER", r: 1.5 },
+   { v: "TE", r: 1.5 },
+   { v: "ET", r: 1.4 },
+   { v: "EL", r: 1.4 },
+   { v: "AN", r: 1.4 },
+   { v: "SE", r: 1.3 },
+   { v: "LA", r: 1.3 },
+   { v: "AI", r: 1.2 },
+   { v: "NE", r: 1.1 },
+   { v: "OU", r: 1.1 },
+   { v: "QU", r: 1.1 },
+   { v: "ME", r: 1.1 },
+   { v: "IT", r: 1.1 },
+   { v: "IE", r: 1.1 },
+   { v: "ED", r: 1.0 },
+   { v: "EM", r: 1.0 },
+   { v: "UR", r: 1.0 },
+   { v: "IS", r: 1.0 },
+   { v: "EC", r: 1.0 },
+   { v: "UE", r: 0.9 },
+   { v: "TI", r: 0.9 },
+   { v: "RA", r: 0.9 },
+   { v: "IN", r: 0.8 }
+];
+
+
 
 // PlayFair default wiring.
 export const setupTools = function (addTool) {
@@ -56,7 +96,6 @@ export const setupTools = function (addTool) {
 
    addTool(BigramFrequencyAnalysis, function (scopes, scope) {
       scope.inputCipheredText = scopes[iTextInput].output;
-      scope.mostFrequentFrench = mostFrequentFrench.map(decodeBigram.bind(null, scope.alphabet));
       scope.inputSubstitution = scopes[iEditSubstitution].outputSubstitution;
    }, {
       inputCipheredTextVariable: 'texteChiffré',

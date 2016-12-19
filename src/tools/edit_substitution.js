@@ -25,39 +25,26 @@ const Component = EpicComponent(self => {
             outputSubstitution
    */
 
-   const clickBigram = function (event) {
-      const {substitutionEdits} = self.props.state;
-      const {letterInfos} = self.props.scope;
+   const selectLetter = function (event) {
       const iLetter = parseInt(event.currentTarget.getAttribute('data-i'));
+      const {letterInfos} = self.props.scope;
       const bigram = letterInfos[iLetter].bigram;
-      if (bigram === undefined)
-         return;
-      const editPair = substitutionEdits[bigram.v] || [{locked: false}, {locked: false}];
-      self.setState({
-         editPair: editPair,
-         selectedLetterPos: iLetter
-      });
+      if (bigram !== undefined) {
+         self.props.dispatch({type: 'SelectLetter', letterPos: iLetter, bigram});
+      }
    };
 
-   const validateDialog = function (checkedEditPair) {
-      const {selectedLetterPos} = self.state;
-      const {letterInfos} = self.props.scope;
-      const {v} = letterInfos[selectedLetterPos].bigram;
-      const {state, setToolState} = self.props; // XXX
-      let newEdits = {...state.substitutionEdits};
-      if (!checkedEditPair[0] && !checkedEditPair[1])
-         delete newEdits[v];
-      else
-         newEdits[v] = checkedEditPair;
-      setToolState({substitutionEdits: newEdits});
-      cancelDialog();
+   const setEditPair = function (editPair) {
+      self.props.dispatch({type: 'SetEditPair', editPair});
+   };
+
+   const validateDialog = function (editPair) {
+      const bigram = self.props.state.selectedBigram;
+      self.props.dispatch({type: 'ApplyEdit', bigram, editPair});
    };
 
    const cancelDialog = function () {
-      self.setState({
-         editPair: undefined,
-         selectedLetterPos: undefined
-      });
+      self.props.dispatch({type: 'CancelEdit'});
    };
 
    const renderInstructionPython = function () {
@@ -86,12 +73,8 @@ const Component = EpicComponent(self => {
       return <Variables inputVars={inputVars} outputVars={outputVars} />;
    };
 
-   const setEditPair = function (editPair) {
-      self.setState({editPair});
-   };
-
    const renderEditPair = function () {
-      const {selectedLetterPos, editPair} = self.state;
+      const {selectedLetterPos, editPair} = self.props.state;
       const {alphabet, letterInfos, inputSubstitution} = self.props.scope;
       const letterInfo = letterInfos[selectedLetterPos];
       const bigram = letterInfo.bigram;
@@ -141,7 +124,7 @@ const Component = EpicComponent(self => {
 
    const renderSubstBigrams = function () {
       const {alphabet, inputCipheredText, inputSubstitution, outputSubstitution, letterInfos, lineStartCols} = self.props.scope;
-      const {selectedLetterPos} = self.state;
+      const {selectedLetterPos} = self.props.state;
       const selectedBigramPos = selectedLetterPos && letterInfos[selectedLetterPos].iBigram;
       let line = 0;
       const elements = [];
@@ -167,7 +150,7 @@ const Component = EpicComponent(self => {
             iBigram !== undefined && selectedBigramPos === iBigram && 'selectedBigram'
          ];
          elements.push(
-            <div key={iLetter} className={classnames(bigramClasses)} onClick={clickBigram} data-i={iLetter}>
+            <div key={iLetter} className={classnames(bigramClasses)} onClick={selectLetter} data-i={iLetter}>
                <div className='cipheredLetter'>{letter}</div>
                {substBlock}
             </div>
@@ -176,15 +159,9 @@ const Component = EpicComponent(self => {
       return <div className='y-scrollBloc'>{elements}</div>;
    };
 
-   self.state = {
-      editPair: undefined,
-      selectedLetterPos: undefined
-   };
-
    self.render = function () {
-      const {editPair} = self.state;
-      const {scope} = self.props;
-      const {nConflicts} = scope;
+      const {editPair} = self.props.state;
+      const {nConflicts} = self.props.scope;
       return (
          <div className='panel panel-default'>
             <div className='panel-heading'>
@@ -212,17 +189,64 @@ const Component = EpicComponent(self => {
 
 const compute = function (state, scope) {
    const {substitutionEdits, nbLettersPerRow} = state;
-   const {alphabet, inputCipheredText, inputSubstitution} = scope;
-   scope.letterInfos = getTextAsBigrams(inputCipheredText, alphabet).letterInfos;
+   const {alphabet, bigramAlphabet, inputCipheredText, inputSubstitution} = scope;
+   scope.letterInfos = getTextAsBigrams(inputCipheredText, bigramAlphabet).letterInfos;
    scope.lineStartCols = getStringWrapping(inputCipheredText, nbLettersPerRow, alphabet);
-   scope.outputSubstitution = applySubstitutionEdits(alphabet, inputSubstitution, substitutionEdits);
-   scope.nConflicts = countAllSubstitutionConflicts(inputSubstitution, scope.outputSubstitution, alphabet);
+   scope.outputSubstitution = applySubstitutionEdits(bigramAlphabet, inputSubstitution, substitutionEdits);
+   scope.nConflicts = countAllSubstitutionConflicts(bigramAlphabet, inputSubstitution, scope.outputSubstitution);
+};
+
+const noSelection = {
+   selectedLetterPos: undefined,
+   selectedBigram: undefined,
+   editPair: undefined
+};
+
+const initialState = {
+   nbLettersPerRow: 29,
+   substitutionEdits: {},
+   ...noSelection
 };
 
 export default function EditSubstitution () {
    this.Component = Component;
    this.compute = compute;
-   this.state = {
-      nbLettersPerRow: 29
+   this.state = initialState;
+   this.dump = function (state) {
+      const {substitutionEdits, inputCipheredTextVariable,
+         inputSubstitutionVariable, outputSubstitutionVariable} = state;
+      return {substitutionEdits, inputCipheredTextVariable,
+         inputSubstitutionVariable, outputSubstitutionVariable};
+   };
+   this.load = function (dump) {
+      return {...initialState, ...dump};
+   };
+   this.reducers.SelectLetter = function (state, action) {
+      const {letterPos, bigram} = action;
+      const {substitutionEdits} = state;
+      const editPair = substitutionEdits[bigram.v] || [{locked: false}, {locked: false}];
+      return {
+         ...state,
+         selectedLetterPos: letterPos,
+         selectedBigram: bigram,
+         editPair: editPair
+      };
+   };
+   this.reducers.SetEditPair = function (state, action) {
+      const {editPair} = action;
+      return {...state, editPair};
+   };
+   this.reducers.ApplyEdit = function (state, action) {
+      const {bigram, editPair} = action;
+      let newEdits = {...state.substitutionEdits};
+      if (!editPair[0] && !editPair[1]) {
+         delete newEdits[bigram.v];
+      } else {
+         newEdits[bigram.v] = editPair;
+      }
+      return {...state, ...noSelection, substitutionEdits: newEdits};
+   };
+   this.reducers.CancelEdit = function (state, action) {
+      return {...state, noSelection};
    };
 };

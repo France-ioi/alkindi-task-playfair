@@ -1,5 +1,5 @@
 import {weakenCell} from './cell';
-import {sideOfStatus, getAllBigrams} from './bigram';
+import {sideOfStatus} from './bigram';
 
 export const nullSubstPair = {
    dst: [{q: "unknown"}, {q: "unknown"}]
@@ -53,13 +53,15 @@ export const countSubstitutionConflicts = function (bigrams, initialSubstitution
    return nbConflicts;
 };
 
-export const countAllSubstitutionConflicts = function(initialSubstitution, newSubstitution, alphabet) {
-   const bigrams = getAllBigrams(alphabet);
+export const countAllSubstitutionConflicts = function(bigramAlphabet, initialSubstitution, newSubstitution) {
+   const bigrams = bigramAlphabet.allBigrams;
    return countSubstitutionConflicts(bigrams, initialSubstitution, newSubstitution);
 };
 
 
-export const applySubstitutionEdits = function (alphabet, substitution, edits) {
+export const applySubstitutionEdits = function (bigramAlphabet, substitution, edits) {
+
+   const {alphabet} = bigramAlphabet;
 
    const editToCell = function (edit) {
       if (!edit)
@@ -68,25 +70,24 @@ export const applySubstitutionEdits = function (alphabet, substitution, edits) {
    };
 
    const editedSubstitution = [];
-   alphabet.symbols.map(function (c1, l1) {
-      alphabet.symbols.map(function (c2, l2) {
-         const bigram = c1 + c2;
-         if (bigram in edits) {
-            const edit = edits[bigram];
-            if (!(l1 in editedSubstitution))
-               editedSubstitution[l1] = [];
-            editedSubstitution[l1][l2] = {
-               src: [
-                  {l: l1},
-                  {l: l2}
-               ],
-               dst: [
-                  editToCell(edit[0]),
-                  editToCell(edit[1])
-               ]
-            };
+   bigramAlphabet.allBigrams.forEach(function (bigram) {
+      if (bigram.v in edits) {
+         const {v, l0, l1} = bigram;
+         const edit = edits[v];
+         if (!(l0 in editedSubstitution)) {
+            editedSubstitution[l0] = [];
          }
-      });
+         editedSubstitution[l0][l1] = {
+            src: [
+               {l: l0},
+               {l: l1}
+            ],
+            dst: [
+               editToCell(edit[0]),
+               editToCell(edit[1])
+            ]
+         };
+      }
    });
 
    const cloneSubstitutionPairOrCreate = function (substitution, rank1, rank2) {
@@ -133,31 +134,30 @@ export const applySubstitutionEdits = function (alphabet, substitution, edits) {
 
    const inputSubstitution = substitution;
    const outputSubstitution = [];
-   for (let l1 = 0; l1 < alphabet.size; l1++) {
-      for (let l2 = 0; l2 < alphabet.size; l2++) {
-         const inputSubstPair = cloneSubstitutionPairOrCreate(inputSubstitution, l1, l2);
-         const editedSubstPair = cloneSubstitutionPairOrCreate(editedSubstitution, l1, l2);
-         const outputSubstPair = cloneSubstitutionPairOrCreate(outputSubstitution, l1, l2);
-         let updated = false;
-         for (let side = 0; side < 2; side++) {
-            if ((inputSubstPair.dst[side].q !== "unknown") || (editedSubstPair.dst[side].q !== "unknown")) {
-               updated = true;
-               updateCell(inputSubstPair.dst[side], editedSubstPair.dst[side], outputSubstPair.dst[side]);
-            }
-         }
-         if (updated) {
-            if (outputSubstitution[l1] === undefined) {
-               outputSubstitution[l1] = [];
-            }
-            outputSubstitution[l1][l2] = outputSubstPair;
+   bigramAlphabet.allBigrams.forEach(function (bigram) {
+      const {l0, l1} = bigram;
+      const inputSubstPair = cloneSubstitutionPairOrCreate(inputSubstitution, l0, l1);
+      const editedSubstPair = cloneSubstitutionPairOrCreate(editedSubstitution, l0, l1);
+      const outputSubstPair = cloneSubstitutionPairOrCreate(outputSubstitution, l0, l1);
+      let updated = false;
+      for (let side = 0; side < 2; side++) {
+         if ((inputSubstPair.dst[side].q !== "unknown") || (editedSubstPair.dst[side].q !== "unknown")) {
+            updated = true;
+            updateCell(inputSubstPair.dst[side], editedSubstPair.dst[side], outputSubstPair.dst[side]);
          }
       }
-   }
+      if (updated) {
+         if (outputSubstitution[l0] === undefined) {
+            outputSubstitution[l0] = [];
+         }
+         outputSubstitution[l0][l1] = outputSubstPair;
+      }
+   });
 
    return outputSubstitution;
 };
 
-export const applySubstitution = function (alphabet, substitution, letterInfos) {
+export const applySubstitution = function (substitution, letterInfos) {
    const outputText = [];
    for (var iLetter = 0; iLetter < letterInfos.length; iLetter++) {
       const letterInfo = letterInfos[iLetter];

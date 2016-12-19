@@ -27,49 +27,26 @@ const Component = EpicComponent(self => {
             outputSubstitution
    */
 
-   const getEditCell = function (row, col) {
-      const {editGrid} = self.props.state;
-      if (row >= editGrid.length) {
-         return {};
-      }
-      const editRow = editGrid[row];
-      if (col >= editGrid.length) {
-         return {};
-      }
-      return editRow[col];
+   const selectCell = function (row, col) {
+      self.props.dispatch({type: 'SelectCell', row, col});
    };
 
-   const clickGridCell = function (row, col) {
-      self.setState({
-         selectedRow: row,
-         selectedCol: col,
-         editCell: getEditCell(row, col)
-      });
+   const setEditCell = function (editCell) {
+      self.props.dispatch({type: 'SetEditCell', editCell});
    };
 
    const validateDialog = function (editCell) {
-      const {state, setToolState} = self.props;
-      const {selectedRow, selectedCol} = self.state;
-      const {editGrid} = state;
-      setToolState({ // XXX
-         editGrid: at(selectedRow, at(selectedCol, put(editCell)))(editGrid)
-      });
-      cancelDialog();
+      const {selectedRow, selectedCol} = self.props.state;
+      self.props.dispatch({type: 'ApplyEdit', row: selectedRow, col: selectedCol, editCell});
    };
 
    const cancelDialog = function () {
-      self.setState({
-         editState: undefined,
-         selectedRow: undefined,
-         selectedCol: undefined,
-         editCell: undefined
-      });
+      self.props.dispatch({type: 'CancelEdit'});
    };
 
    const renderInstructionPython = function () {
-      const {state, scope} = self.props;
-      const {outputSubstitutionVariable, inputGridVariable} = state;
-      const {alphabet, inputGrid} = scope;
+      const {outputSubstitutionVariable, inputGridVariable} = self.props.state;
+      const {alphabet, inputGrid} = self.props.scope;
       const renderCell = function (cell) {
          return "'" + getCellLetter(alphabet, cell) + "'";
       };
@@ -86,10 +63,9 @@ const Component = EpicComponent(self => {
    };
 
    const renderGrid = function() {
-      const {scope} = self.props;
-      const {alphabet, outputGrid} = scope;
-      const {selectedRow, selectedCol} = self.state;
-      return <Grid alphabet={alphabet} grid={outputGrid} selectedRow={selectedRow} selectedCol={selectedCol} onClick={clickGridCell} />;
+      const {alphabet, outputGrid} = self.props.scope;
+      const {selectedRow, selectedCol} = self.props.state;
+      return <Grid alphabet={alphabet} grid={outputGrid} selectedRow={selectedRow} selectedCol={selectedCol} onClick={selectCell} />;
    };
 
    const renderSubstitution = function () {
@@ -98,13 +74,9 @@ const Component = EpicComponent(self => {
       return <Substitution alphabet={alphabet} substitution={outputSubstitution}/>;
    };
 
-   const setEditCell = function (editCell) {
-      self.setState({editCell});
-   };
-
    const renderEditCell = function () {
       const {alphabet, inputGrid} = self.props.scope;
-      const {editCell, selectedRow, selectedCol} = self.state;
+      const {editCell, selectedRow, selectedCol} = self.props.state;
       const initialCell = inputGrid[selectedRow][selectedCol];
       return (
          <EditCellDialog
@@ -114,14 +86,13 @@ const Component = EpicComponent(self => {
    };
 
    self.state = {
-      editState: undefined,
       selectedCol: undefined,
       selectedRow: undefined,
       editCell: undefined
    };
 
    self.render = function () {
-      const {outputGridVariable, outputSubstitutionVariable, inputGridVariable} = self.props.state;
+      const {outputGridVariable, outputSubstitutionVariable, inputGridVariable, editCell} = self.props.state;
       const inputVars = [
          {label: "Grille playFair", name: inputGridVariable}
       ];
@@ -129,7 +100,6 @@ const Component = EpicComponent(self => {
          {label: "Grille éditée", name: outputGridVariable},
          {label: "Substitution générée", name: outputSubstitutionVariable}
       ];
-      const {editCell} = self.state;
       return (
          <div className='panel panel-default'>
             <div className='panel-heading'><span className='code'>
@@ -168,13 +138,68 @@ const compute = function (state, scope) {
    scope.outputSubstitution = getSubstitutionFromGridCells(scope.outputGrid);
 };
 
+const noSelection = {
+   selectedRow: undefined,
+   selectedCol: undefined,
+   editCell: undefined
+};
+
+const initialState = {
+   editGrid: [[{},{},{},{},{}],[{},{},{},{},{}],[{},{},{},{},{}],[{},{},{},{},{}],[{},{},{},{},{}]],
+   inputGridVariable: undefined,
+   outputGridVariable: undefined,
+   outputSubstitutionVariable: undefined,
+   ...noSelection
+};
+
+const getEditCell = function (editGrid, row, col) {
+   if (row >= editGrid.length) {
+      return {};
+   }
+   const editRow = editGrid[row];
+   if (col >= editGrid.length) {
+      return {};
+   }
+   return editRow[col];
+};
+
 export default function SubstitutionFromGrid () {
    this.Component = Component;
    this.compute = compute;
-   this.state = {
-      editGrid: [[{},{},{},{},{}],[{},{},{},{},{}],[{},{},{},{},{}],[{},{},{},{},{}],[{},{},{},{},{}]],
-      inputGridVariable: undefined,
-      outputGridVariable: undefined,
-      outputSubstitutionVariable: undefined
-  };
+   this.state = initialState;
+   this.dump = function (state) {
+      const {editGrid, inputGridVariable, outputGridVariable,
+         outputSubstitutionVariable} = state;
+      return {editGrid, inputGridVariable, outputGridVariable,
+         outputSubstitutionVariable};
+   };
+   this.load = function (dump) {
+      return {...initialState, ...dump};
+   };
+   this.reducers.SelectCell = function (state, action) {
+      const {row, col} = action;
+      const {editGrid} = state;
+      return {
+         ...state,
+         selectedRow: row,
+         selectedCol: col,
+         editCell: getEditCell(editGrid, row, col)
+      };
+   };
+   this.reducers.SetEditCell = function (state, action) {
+      const {editCell} = action;
+      return {...state, editCell};
+   };
+   this.reducers.ApplyEdit = function (state, action) {
+      const {editGrid} = state;
+      const {row, col, editCell} = action;
+      return {
+         ...state,
+         editGrid: at(row, at(col, put(editCell)))(editGrid),
+         ...noSelection
+      };
+   };
+   this.reducers.CancelEdit = function (state, action) {
+      return {...state, ...noSelection};
+   };
 };
