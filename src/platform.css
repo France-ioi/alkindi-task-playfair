@@ -1,0 +1,638 @@
+/* CSS file copied from the 2015 Alkindi platform, should probably be trimmed
+   down and perhaps imported from a separate package shared by all tasks. */
+
+html {
+  min-height: 100%;
+  position: relative;
+}
+body {
+  font-family: Arial, sans-serif;
+  margin: 8px 0 80px;
+  padding: 0;
+  color: #000;
+}
+
+/* Generic elements */
+a {
+  color: #4D87CE;
+  font-weight: bold;
+  text-decoration: none;
+  cursor: pointer;
+}
+input {
+  padding: 0 3px;
+  border: 1px solid #A9A9A9;
+  background-color: #fff;
+}
+select.placeholder {
+  color: #999;
+}
+option {
+  color: #555;
+}
+hr {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid #000;
+}
+.title {
+  font-weight: bold;
+  margin-bottom: 0;
+}
+.selected {
+  font-weight: bold;
+}
+.panel-heading {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.panel-body {
+  position: relative;
+}
+
+div.section {
+  margin-bottom: 20px;
+}
+
+.fa-question-circle {
+  color: #0f33ff;
+  cursor: pointer;
+}
+
+.epic-fail {
+  font-size: 14px;
+  color: #000;
+  background: #ff8;
+  border: 2px solid #f00;
+  padding: 10px;
+  border-radius: 8px;
+  max-width: 400px;
+  overflow: hidden;
+  font-weight: bold;
+}
+
+
+.textBlock {
+  font-family: "Lucida Console", Monaco, monospace;
+  position: relative;
+  overflow-y: auto;
+}
+.textBlock span {
+  display: inline-block;
+  width: 10px;
+  height: 26px;
+  font-size: 20px;
+  margin: 2px;
+  color: #000;
+  cursor: default;
+  vertical-align: bottom;
+}
+.textBlock span.textSym {
+  background-color: #F0F0F0;
+}
+.textBlock span.textSym:hover {
+  color: #FFF;
+  background-color: #000;
+}
+.textBlock span.textSym.q-locked {
+  color: red;
+}
+.textBlock span.textInsert {
+ background-color: #FFF;
+}
+.textBlock span.textPos {
+  color: #888;
+  width: 60px;
+  text-align: right;
+  margin-right: 10px;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.textBlock .textLine {
+  position: absolute;
+}
+.textBlock .textTopAnchor, .textBlock .textBottomAnchor {
+  position: absolute;
+  right: 0;
+  height: 1px;
+  width: 1px;
+  z-index: -1;
+  background-color: green;
+}
+.textBlock .textTopAnchor {
+  top: 0;
+}
+.textBlock .textCursor {
+  border-bottom: 2px solid black;
+}
+.textBlock .textEnd.textCursor {
+  background-color: #FFF;
+}
+
+/*
+
+character substitutions tables
+
+*/
+.char-pairs {
+  float: left;
+  width: 2em;
+  line-height: 2em;
+  text-align: center;
+}
+.char-base, .char-subs {
+  display: block;
+}
+.char-subs {
+  border: 1px solid #000;
+  border-left: none;
+  cursor: pointer;
+}
+.char-subs.char-locked {
+  cursor: default;
+}
+.char-pairs:first-child .char-subs {
+  border: 1px solid #000;
+}
+.char-selected {
+  background: #333;
+  color: #fff;
+}
+.char-lock {
+  padding: 8px;
+  cursor: pointer;
+}
+.char-lock.char-locked {
+  color: #000;
+}
+.char-lock.char-unlocked {
+  color: #ddd;
+}
+.char-lock.char-unlocked:hover {
+  color: #888;
+}
+
+/*
+
+ code fragments
+
+*/
+.code {
+  font-family: "Lucida Console", Monaco, monospace;
+  font-size: 18px;
+}
+.code-kw {
+  color: #8959A8;
+}
+.code-var {
+  color: #C82829;
+}
+.code-hole {
+  color: #888;
+  font-style: italic;
+}
+
+/* make substitution editor scroll horizontally */
+.substitution-editor-wrapper {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/*
+
+    Interfaces et grilles PlayFair
+
+*/
+#task .panel-heading .code {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 750px;
+  display: inline-block;
+  vertical-align: middle;
+}
+#task .task-score {
+  color: #C82829;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+}
+#task .task-score > span {
+  text-transform: uppercase;
+  font-weight: bold;
+  padding: 4px;
+  text-decoration: blink;
+}
+#task .task-score > span strong {
+  color: #000;
+}
+#task .task-hints.panel {
+  border-color: #C82829;
+}
+#task .task-hints > .panel-heading {
+  background-color: #C82829;
+}
+.task-hints .panel-heading .code-var, .task-hints .panel-heading .code-var {
+  color: #fff;
+}
+/* Fonts */
+.playFairGrid,
+.playFairAlphabet,
+.dialogBigram,
+.bigramLetter,
+.letterSubstBloc,
+.bigramCipheredLetter {
+  font-family: "Lucida Console", Monaco, monospace;
+}
+/* boites de dialogue */
+.dialog {
+  width: 50%;
+  max-width: 400px;
+  background: #f0f0f0;
+  border: 1px solid black;
+  border-radius: 3px;
+  padding: 5px;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 1;
+}
+.dialogIndice {
+  font-family: "Lucida Console", Monaco, monospace;
+  font-weight: bold;
+}
+.dialogLine {
+  min-height: 2em;
+  line-height: 2em;
+}
+.dialogLabel {
+  font-weight: bold;
+  float: left;
+  width: 50%;
+}
+.dialogBigram {
+  background-color: #fff;
+  border: 1px solid #000;
+  display: inline-block;
+  font-size: 1.2em;
+}
+.dialog .bigramCipheredLetter .bigramLetter,
+.dialog .dialogBigramSubstOrig .bigramLetter {
+  padding: 0 10px;
+}
+.dialog .dialogBigramSubstOrig,
+.dialog .dialogBigramSubstOrig .bigramLetter {
+  background-color: transparent;
+  border-color: transparent;
+}
+.dialogLetterSubst {
+  padding: 0 5px;
+}
+.dialogLetterSubst input {
+  width: 1.5em;
+  text-align: center;
+}
+.dialog .substitutionLock {
+  display: inline-block;
+  margin-right: 4px;
+  width: 29px;
+  text-align: center;
+}
+.dialog .btn-toggle {
+  border: none;
+  background-color: transparent;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  margin-right: 8px;
+  margin-left: 5px;
+}
+.dialog table,
+.dialog table td {
+  border: none;
+}
+.dialog button {
+  padding: 0 10px;
+}
+/* variables */
+.tool-variables,
+.playfair-variables {
+  border: 1px solid #000;
+  border-radius: 3px;
+  margin-bottom: 5px;
+  padding: 10px;
+  display: inline-block;
+  width: 50%;
+}
+.variable-informations > span {
+  font-weight: bold;
+}
+.variable-informations > div {
+  margin-left: 5px;
+}
+.variable-informations .variable-label {
+  float: left;
+  width: 40%;
+  clear: left;
+  text-align: right;
+  padding-right: 7px;
+  display: inline-block;
+}
+.variable-informations .variable-name {
+  display: inline-block;
+  font-size: 11px;
+  text-align: center;
+  border: 1px solid #000;
+  padding: 0 5px;
+  background-color: #f4f4f4;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: auto;
+}
+/* grilles */
+.playFairGrid,
+.playFairAlphabet,
+.bigrams {
+  width: auto;
+  border-collapse: collapse;
+}
+.playFairGrid td,
+.playFairAlphabet td {
+  padding: 0;
+}
+.playFairGrid tr td, .playFairAlphabet tr td {
+  width: 30px;
+  height: 30px;
+  font-size: 1.5em;
+  text-align: center;
+  border: 1px solid black;
+}
+.playFairGrid td.cell-conflict,
+.cell-conflict {
+    border: 3px solid #C82829;
+}
+.grillesSection {
+  margin-top: 10px;
+}
+.blocGrille {
+  display: inline-block;
+  vertical-align: top;
+}
+.blocGrille:first-of-type {
+  margin-right: 45px;
+}
+.y-scrollBloc {
+  overflow-y: scroll;
+  border: 1px solid #000;
+  margin: 5px 0;
+  padding: 10px;
+  height: 150px;
+}
+.qualifier-locked {
+  background-color: #ddd;
+  background-repeat: no-repeat;
+  background-position: top right;
+}
+.qualifier-locked::after {
+  content: "\f023";
+  font-family: FontAwesome;
+  font-size: 11px;
+  line-height: 1em;
+  display: inline-block;
+  vertical-align: top;
+  margin-top: 3px;
+  margin-right: -6px;
+}
+.qualifier-unconfirmed {
+  background-color: white;
+}
+.qualifier-hint {
+  background-color: #aaa;
+}
+.qualifier-confirmed {
+  background-color: #ddd;
+}
+.qualifier-disabled {
+  background-image: linear-gradient(-45deg, #fff 25%, transparent 25%, transparent 50%, #fff 50%, #fff 75%, transparent 75%, transparent);
+  background-size: 4px 4px;
+  background-color: #808080;
+}
+.cell-query {
+  background-color: #000;
+  color: #fff;
+}
+/* bigrammes */
+.bigrams {
+  display: inline-table;
+  border: none;
+  margin-right: 15px;
+}
+.bigrams td {
+  border: none;
+  padding: 0;
+}
+.bigrams td:first-child,
+.bigrams td:last-child {
+  border: 1px solid #000;
+}
+.bigrams td > * {
+  padding: 0 4px;
+  font-size: 1.6rem;
+}
+td .bigramLetter {
+  min-width: 1em;
+  display: inline-block;
+  text-align: center;
+}
+.y-scrollBloc.bigramSubstitution {
+  height: 136px;
+  width: 560px;
+}
+.bigramSubstitution > div {
+  float: left;
+}
+.bigramSubstitution > div:nth-child(odd) {
+  margin-right: 30px;
+}
+/* Éléments spécifiques à l'outil Analyse de fréquence des bigrammes */
+.x-scrollBloc {
+  overflow-x: scroll;
+  white-space: nowrap;
+  border: 1px solid #000;
+  margin: 5px 0;
+  width: auto;
+  padding: 5px;
+}
+.x-scrollBloc .labels {
+  display: inline-block;
+  padding-right: 5px;
+  vertical-align: top;
+}
+.x-scrollBloc .labels > div {
+  line-height: 2em;
+}
+#bigramFrequencyAnalysis .bigramBloc, .bigramFrequencyAnalysis .bigramBloc {
+  display: inline-block;
+  margin: 0 5px 1px;
+  vertical-align: top;
+}
+#bigramFrequencyAnalysis .frequence, .bigramFrequencyAnalysis .frequence {
+  display: block;
+  height: 2em;
+  text-align: center;
+}
+.bigramBlocSubstitution {
+  padding: 3px;
+}
+.bigramBlocSubstitution.selectedBigram {
+  background-color: #000;
+  border: 1px solid #000;
+}
+.substitutionPair {
+  display: inline-block;
+  border: 3px solid transparent;
+}
+.substitutionPair.substitutionConflict {
+  border-color: #C82829;
+}
+.substitutionPair .bigramLetter {
+  width: 20px;
+  font-size: 1.8rem;
+  border: 1px solid #000;
+  display: block;
+  text-align: center;
+}
+.substitutionPair .originLetter .bigramLetter {
+  margin-bottom: 2px;
+  border-color: transparent;
+}
+.selectedBigram .substitutionPair .originLetter .bigramLetter.qualifier-unconfirmed {
+  background-color: transparent;
+  color: #fff;
+}
+.selectedBigram .substitutionPair .originLetter .bigramLetter.qualifier-confirmed,
+.selectedBigram .substitutionPair .originLetter .bigramLetter.qualifier-hint {
+  border-color: #000;
+}
+.substitutionPair span.substitutionLock {
+  display: block;
+  text-align: center;
+}
+.selectedBigram .substitutionPair span.substitutionLock {
+  color: #fff;
+}
+.grillesSection .bigramCipheredLetter {
+  min-width: 2.5em;
+}
+.grillesSection .bigramCipheredLetter span {
+  border: 1px solid #000;
+  text-align: center;
+  background-color: #fff;
+  display: block;
+}
+
+/* Edit substitution */
+.originLetter {
+  overflow: hidden;
+}
+.editSubstitution .y-scrollBloc, #improveSubstitution .y-scrollBloc, .improveSubstitution .y-scrollBloc {
+  height: 320px;
+  padding: 0;
+  line-height: 1.5;
+}
+.letterSubstBloc {
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  padding-top: 3px;
+  width: 2em;
+  overflow: hidden;
+  height: 117px;
+}
+.letterSubstBloc.letterStatus-left {
+  padding-left: 3px;
+}
+.letterSubstBloc.letterStatus-left .substitutionPair {
+  margin-left: -3px;
+}
+.letterSubstBloc.letterStatus-right {
+  padding-right: 3px;
+}
+.letterSubstBloc.selectedBigram {
+  background-color: #000;
+}
+.letterStatus-left .cipheredLetter,
+.letterStatus-right .cipheredLetter,
+.letterStatus-inside .cipheredLetter {
+  border-top: 1px solid black;
+  border-bottom: 1px solid black;
+  white-space: pre;
+  background-color: #fff;
+}
+.letterStatus-left .cipheredLetter {
+  border-left: 1px solid black;
+}
+.letterStatus-right .cipheredLetter {
+  border-right: 1px solid black;
+}
+.letterStatus-inside .substitutionPair,
+.letterStatus-outside .substitutionPair {
+  width: 100%;
+}
+.letterSubstBloc.letterStatus-outside .cipheredLetter {
+  border: 1px solid transparent;
+}
+.letterSubstBloc.letterStatus-inside .character,
+.letterSubstBloc.letterStatus-outside .character {
+  border: 1px solid transparent;
+  margin: 2px 1px;
+  line-height: 2em;
+  height: 2em;
+  margin-top: 4px;
+}
+.letterSubstBloc.letterStatus-inside .character:last-of-type,
+.letterSubstBloc.letterStatus-outside .character:last-of-type {
+  height: 20px;
+}
+.letterSubstBloc.letterStatus-inside.selectedBigram .character,
+.letterSubstBloc.letterStatus-outside.selectedBigram .character {
+  color: #fff;
+}
+.letterSubstBloc .bigramLetter {
+  display: block;
+  margin: 2px 1px;
+}
+.substituedLetter {
+  border: 1px solid #777;
+  font-family: "Lucida Console", Monaco, monospace;
+  font-size: 1.8rem;
+  margin: 2px;
+  display: inline-block;
+  width: 1.1em;
+  height: 1.5em;
+  vertical-align: top;
+  text-align: center;
+}
+.substituedLetter.character {
+  border-color: transparent;
+}
+.applySubstitution hr {
+  margin: 3px 0;
+}
+
+/*
+
+Task tab
+
+*/
+.task-cipher-text {
+  white-space: pre-wrap;
+  font-family: "Lucida Console", Monaco, monospace;
+  font-size: 16px;
+}

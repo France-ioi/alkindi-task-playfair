@@ -1,0 +1,60 @@
+.playfair-task  {
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  color: #000;
+  margin: 0;
+  padding: 10px;
+  max-width: 880px;
+  min-width: 650px;
+  margin: 0 auto;
+  text-align: justify;
+  overflow: hidden;
+  font-size: 1.4rem;
+}
+
+.playfair-task .playfair-annonces {
+  border: 1px solid #ac1a1d;
+  font-size: 1.2em;
+}
+.playfair-task .playfair-annonces .playfair-title {
+  font-size: 1.8rem;
+  background-color: #ac1a1d;
+  margin: 0;
+  padding: 10px;
+  font-weight: bold;
+  color: #fff;
+}
+.playfair-task .playfair-annonces ul {
+  margin: 20px;
+  padding-left: 20px;
+}
+
+.playfair-task ol li {
+  clear: both;
+}
+.playfair-task ol ol {
+  list-style-type: lower-latin;
+}
+
+.playfair-task table {
+  border-collapse: collapse;
+}
+.playfair-task table.playfair-outer {
+  margin-left: 20px;
+  text-align:center;
+  font-family:"Lucida Console", Monaco, monospace;
+  float: right;
+}
+.playfair-task td {
+  border: 1px solid #000;
+  height: 30px;
+  width: 30px;
+  padding:0;
+}
+.playfair-task td.playfair-redBorder {
+  border:5px solid red;
+  padding:0;
+}
+.playfair-task td.playfair-background {
+  background-color:#aaa;
+}
