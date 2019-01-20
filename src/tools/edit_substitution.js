@@ -184,30 +184,24 @@ class EditSubstitution extends React.PureComponent {
       const {letterInfos} = this.props;
       const bigram = letterInfos[iLetter].bigram;
       if (bigram !== undefined) {
-         this.props.dispatch({type: this.props.actions.taskSelectLetter, payload: {letterPos: iLetter, bigram}});
+         this.props.dispatch({type: this.props.actions.editSubstitutionSelectLetter, payload: {letterPos: iLetter, bigram}});
       }
    };
 
    setEditPair = (editPair) => {
-      this.props.dispatch({type: this.props.actions.taskSetEditPair, payload: {editPair}});
+      this.props.dispatch({type: this.props.actions.editSubstitutionSetEditPair, payload: {editPair}});
    };
 
    validateDialog = (editPair) => {
       const bigram = this.props.selectedBigram;
-      this.props.dispatch({type: this.props.actions.taskApplyEdit, payload: {bigram, editPair}});
+      this.props.dispatch({type: this.props.actions.editSubstitutionApplyEdit, payload: {bigram, editPair}});
    };
 
    cancelDialog = () => {
-      this.props.dispatch({type: this.props.actions.taskCancelEdit});
+      this.props.dispatch({type: this.props.actions.editSubstitutionCancelEdit});
    };
 
 }
-
-const noSelection = {
-   selectedLetterPos: undefined,
-   selectedBigram: undefined,
-   editPair: undefined
-};
 
 function taskInitReducer (state, _action) {
    const {taskData} = state;
@@ -215,7 +209,9 @@ function taskInitReducer (state, _action) {
    const row = [u,u,u,u,u];
    return update(state, {editSubstitution: {
       $set: {
-         ...noSelection,
+         selectedLetterPos: undefined,
+         selectedBigram: undefined,
+         editPair: undefined,
          nbLettersPerRow: 29,
          substitutionEdits: {},
       }
@@ -223,35 +219,45 @@ function taskInitReducer (state, _action) {
 }
 
 function selectLetterReducer (state, action) {
-   const {letterPos, bigram} = action;
-   const {substitutionEdits} = state;
+   const {letterPos, bigram} = action.payload;
+   const {substitutionEdits} = state.editSubstitution;
    const editPair = substitutionEdits[bigram.v] || [{locked: false}, {locked: false}];
-   return {
-      ...state,
-      selectedLetterPos: letterPos,
-      selectedBigram: bigram,
-      editPair: editPair
-   };
+   return update(state, {editSubstitution: {
+      selectedLetterPos: {$set: letterPos},
+      selectedBigram: {$set: bigram},
+      editPair: {$set: editPair},
+   }});
 }
 
 function setEditPairReducer (state, action) {
-   const {editPair} = action;
-   return {...state, editPair};
+   const {editPair} = action.payload;
+   return update(state, {editSubstitution: {
+      editPair: {$set: editPair},
+   }});
 }
 
 function applyEditReducer (state, action) {
-   const {bigram, editPair} = action;
-   let newEdits = {...state.substitutionEdits};
+   const {bigram, editPair} = action.payload;
+   let change;
    if (!editPair[0] && !editPair[1]) {
-      delete newEdits[bigram.v];
+      change = {$unset: [bigram.v]};
    } else {
-      newEdits[bigram.v] = editPair;
+      change = {[bigram.v]: {$set: editPair}};
    }
-   return {...state, ...noSelection, substitutionEdits: newEdits};
+   return update(state, {editSubstitution: {
+      substitutionEdits: change,
+      selectedLetterPos: {$set: undefined},
+      selectedBigram: {$set: undefined},
+      editPair: {$set: undefined},
+   }});
 }
 
 function cancelEditReducer (state, action) {
-   return {...state, noSelection};
+   return update(state, {editSubstitution: {
+      selectedLetterPos: {$set: undefined},
+      selectedBigram: {$set: undefined},
+      editPair: {$set: undefined},
+   }});
 }
 
 function lateReducer (state) {
