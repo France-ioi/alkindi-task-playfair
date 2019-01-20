@@ -1,20 +1,13 @@
 import React from 'react';
 import classnames from 'classnames';
 import range from 'node-range';
-import EpicComponent from 'epic-component';
 
-export const Alphabet = EpicComponent(self => {
+export class Alphabet extends React.PureComponent {
 
-   const onClick = function (event) {
-      const element = event.currentTarget;
-      const letterRank = parseInt(element.getAttribute('data-letter-rank'));
-      self.props.onClick(letterRank);
-   };
-
-   self.render = function () {
-      const {alphabet, qualifiers, selectedLetterRank} = self.props;
+   render() {
+      const {alphabet, qualifiers, selectedLetterRank} = this.props;
       const {symbols} = alphabet;
-      const renderCell = function (i) {
+      const renderCell = (i) => {
          if (i === 22) {
             return <td key={i} className='qualifier-disabled'></td>;
          }
@@ -25,12 +18,12 @@ export const Alphabet = EpicComponent(self => {
             classes.push("cell-query");
          }
          return (
-            <td key={i} className={classnames(classes)} onClick={onClick} data-letter-rank={letterRank}>
+            <td key={i} className={classnames(classes)} onClick={this.onClick} data-letter-rank={letterRank}>
                {symbols[letterRank]}
             </td>
          );
-      };
-      const renderRow = function (row) {
+      }
+      const renderRow = (row) => {
          return (
             <table key={row} className='playFairAlphabet'>
                <tbody>
@@ -38,8 +31,14 @@ export const Alphabet = EpicComponent(self => {
                </tbody>
             </table>
          );
-      };
+      }
       return <div>{renderRow(0)}<br key='br'/>{renderRow(1)}</div>;
+   }
+
+   onClick = (event) => {
+      const element = event.currentTarget;
+      const letterRank = parseInt(element.getAttribute('data-letter-rank'));
+      this.props.onClick(letterRank);
    };
 
-});
+}

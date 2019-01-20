@@ -1,54 +1,68 @@
+
 import React from 'react';
-import EpicComponent from 'epic-component';
+import {connect} from 'react-redux';
 import classnames from 'classnames';
-import {Python, Variables} from 'alkindi-task-lib/ui';
+import update from 'immutability-helper';
 
-export const Component = EpicComponent(self => {
+import {Python, Variables} from '../ui';
 
-   /*
-      props:
-         scope:
-            alphabet
-            text
-         state:
-            outputVariable
-   */
+function TextInputSelector (state) {
+   const {outputText} = state.textInput;
+   return {text: outputText};
+}
 
-   self.render = function() {
-      const {outputVariable} = self.props.state;
-      const {text} = self.props.scope;
-      const inputVars = [];
-      const outputVars = [{label: "Texte chiffré", name: outputVariable}];
-      return (
-         <div className='panel panel-default'>
-            <div className='panel-heading'>
-               <span className='code'>
-                  <Python.Assign>
-                     <Python.Var name={outputVariable}/>
-                     <Python.StrLit value={text}/>
-                  </Python.Assign>
-               </span>
-            </div>
-            <div className='panel-body'>
-               <Variables inputVars={inputVars} outputVars={outputVars} />
-               <div className='grillesSection'>
-                  <div className='y-scrollBloc'>{text}</div>
-               </div>
-            </div>
-         </div>
-      );
-   };
+class TextInput extends React.PureComponent {
+  render() {
+    const {outputVariable, text} = this.props;
+    const inputVars = [];
+    const outputVars = [{label: "Texte chiffré", name: outputVariable}];
+    return (
+      <div className='panel panel-default'>
+        <div className='panel-heading'>
+          <span className='code'>
+            <Python.Assign>
+              <Python.Var name={outputVariable}/>
+              <Python.StrLit value={text}/>
+            </Python.Assign>
+          </span>
+        </div>
+        <div className='panel-body'>
+          <Variables inputVars={inputVars} outputVars={outputVars} />
+          <div className='grillesSection'>
+            <div className='y-scrollBloc'>{text}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
 
-});
+function taskInitReducer (state, _action) {
+   return update(state, {textInput: {
+      $set: {
+         inputText: {$set: ""},
+         outputText: {$set: ""},
+      }
+   }});
+}
 
-export const compute = function (state, scope) {
-   scope.output = scope.text;
-};
+function lateReducer (state) {
+   if (state.taskReady) {
+      const text = state.taskData.cipherText;
+      state = update(state, {textInput: {
+        inputText: {$set: text},
+        outputText: {$set: text}
+      }});
+   }
+   return state;
+}
 
-export default function TextInput () {
-   this.Component = Component;
-   this.compute = compute;
-   this.state = {
-      outputVariable: undefined
-   };
+export default {
+  actionReducers: {
+    taskInit: taskInitReducer,
+  },
+  views: {
+    TextInput: connect(TextInputSelector)(TextInput)
+  },
+  lateReducer
 };

@@ -1,10 +1,9 @@
 import React from 'react';
-import EpicComponent from 'epic-component';
 
-export const Task = EpicComponent(self => {
+export class Task extends React.PureComponent {
 
-   self.render = function () {
-      const {task} = self.props;
+   render () {
+      const {task} = this.props;
       const lines = task.cipher_text.match(/.{1,40}/g);
       return (
          <div className="playfair-task">
@@ -186,6 +185,6 @@ export const Task = EpicComponent(self => {
             </ol>
             <p>{"Voilà, vous avez toutes les informations utiles en votre possession. À vous de jouer. Bonne chance !"}</p>
          </div>);
-   };
+   }
 
-});
+};

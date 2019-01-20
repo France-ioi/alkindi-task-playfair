@@ -1,54 +1,72 @@
 import React from 'react';
-import EpicComponent from 'epic-component';
+import {connect} from 'react-redux';
 import classnames from 'classnames';
-import {Python, Variables} from 'alkindi-task-lib/ui';
+import update from 'immutability-helper';
 
+import {Python, Variables} from '../ui';
 import EditPairDialog from '../utils/edit_pair_dialog';
 import {getCellLetter, getQualifierClass, testConflict} from '../utils/cell';
 import {getTextBigrams, getMostFrequentBigrams} from '../utils/bigram';
 import {getBigramSubstPair, nullSubstPair, countSubstitutionConflicts, applySubstitutionEdits} from '../utils/bigram_subst';
 
-const Component = EpicComponent(self => {
+function BigramFrequencyAnalysisSelector (state) {
+   const {actions, alphabet, mostFrequentFrench} = state;
+   const {nBigrams, substitutionEdits, selectedBigram, editPair} = state.bigramFrequencyAnalysis;
+   const {inputCipheredText, inputSubstitution, textBigrams, mostFrequentBigrams, outputSubstitution, nConflicts} = state.bigramFrequencyAnalysis;
+   return {
+      actions, alphabet, mostFrequentFrench,
+      nBigrams, substitutionEdits, selectedBigram, editPair,
+      inputCipheredText, inputSubstitution, textBigrams, mostFrequentBigrams, outputSubstitution, nConflicts,
+   };
+}
+
+class BigramFrequencyAnalysis extends React.PureComponent {
 
    /*
       props:
-         state:
-            inputCipheredTextVariable
-            inputSubstitutionVariable
-            outputSubstitutionVariable
-            substitutionEdits
-            editable
-         scope:
-            alphabet
-            frenchBigrams
-            inputCipheredText
-            inputSubstitution
-            outputSubstitution
-            mostFrequentFrench
-            mostFrequentBigrams
+         inputCipheredTextVariable
+         inputSubstitutionVariable
+         outputSubstitutionVariable
+         substitutionEdits
+         editable
+         alphabet
+         inputCipheredText
+         inputSubstitution
+         outputSubstitution
+         mostFrequentFrench
+         mostFrequentBigrams
+         nConflicts
    */
 
-   const clickBigram = function (event) {
-      const bigram = event.currentTarget.getAttribute('data-bigram');
-      self.props.dispatch({type: 'SelectBigram', bigram});
-   };
+   render () {
+      const {editable, nBigrams, editPair, inputSubstitution, outputSubstitution, mostFrequentFrench, mostFrequentBigrams, nConflicts} = this.props;
+      const textBigrams = this.renderFreqSubstBigrams(mostFrequentBigrams, inputSubstitution, outputSubstitution);
+      const frenchBigrams = this.renderFreqBigrams(mostFrequentFrench.slice(0, nBigrams || 10));
+      return (
+         <div className='panel panel-default'>
+            <div className='panel-heading'>
+               <span className='code'>
+                  {this.renderInstructionPython()}
+               </span>
+            </div>
+            <div className='panel-body'>
+               {editPair && this.renderEditPair()}
+               {this.renderVariables()}
+               <div className='bigramFrequencyAnalysis grillesSection'>
+                  {editable && <p><strong>{"Nombre de conflits :"}</strong>{" "}{nConflicts}</p>}
+                  <strong>{"Bigrammes les plus fréquents du texte d'entrée :"}</strong>
+                  {textBigrams}
+                  <strong>{"Bigrammes les plus fréquents en français :"}</strong>
+                  {frenchBigrams}
+               </div>
+            </div>
+         </div>
+      );
+   }
 
-   const setEditPair = function (editPair) {
-      self.props.dispatch({type: 'SetEditPair', editPair});
-   };
-
-   const validateDialog = function (editPair) {
-      const bigram = self.props.state.selectedBigram;
-      self.props.dispatch({type: 'ApplyEdit', bigram, editPair});
-   };
-
-   const cancelDialog = function () {
-      self.props.dispatch({type: 'CancelEdit'});
-   };
-
-   const renderInstructionPython = function () {
+   renderInstructionPython() {
       const {inputCipheredTextVariable, inputSubstitutionVariable,
-             outputSubstitutionVariable, editable} = self.props.state;
+             outputSubstitutionVariable, editable} = this.props;
       const expr = (
          <Python.Call name="analyseFrequenceBigrammes">
             <Python.Var name={inputCipheredTextVariable}/>
@@ -64,11 +82,11 @@ const Component = EpicComponent(self => {
             {expr}
          </Python.Assign>
       );
-   };
+   }
 
-   const renderVariables = function () {
+   renderVariables() {
       const {inputCipheredTextVariable, inputSubstitutionVariable,
-             outputSubstitutionVariable, editable} = self.props.state;
+             outputSubstitutionVariable, editable} = this.props;
       const inputVars = [
          {label: "Texte chiffré analysé", name: inputCipheredTextVariable},
          {
@@ -80,200 +98,218 @@ const Component = EpicComponent(self => {
          {label: "Substitution proposée", name: outputSubstitutionVariable}
       ];
       return <Variables inputVars={inputVars} outputVars={outputVars} />;
-   };
+   }
 
-   const renderCell = function (alphabet, cell) {
+   renderCell(cell) {
       const classes = ['bigramLetter', getQualifierClass(cell.q)];
-      return <span className={classnames(classes)}>{getCellLetter(alphabet, cell, true)}</span>;
-   };
+      return <span className={classnames(classes)}>{getCellLetter(this.props.alphabet, cell, true)}</span>;
+   }
 
-   const renderBigram = function (bigram) {
+   renderBigram(bigram) {
       const {v} = bigram;
       return <span>{v.charAt(0)+'\u00a0'+v.charAt(1)}</span>;
-   };
+   }
 
-   const renderEditPair = function () {
-      const {selectedBigram, editPair} = self.props.state;
-      const {alphabet, inputSubstitution} = self.props.scope;
-      const substPair = getBigramSubstPair(inputSubstitution, bigram) || nullSubstPair;
+   renderEditPair() {
+      const {selectedBigram, editPair} = this.props;
+      const {alphabet, inputSubstitution} = this.props;
+      const substPair = getBigramSubstPair(inputSubstitution, selectedBigram) || nullSubstPair;
       return (
          <EditPairDialog
-            alphabet={alphabet} bigram={bigram} editPair={editPair} substPair={substPair}
-            onOk={validateDialog} onCancel={cancelDialog} onChange={setEditPair} />
+            alphabet={alphabet} bigram={selectedBigram} editPair={editPair} substPair={substPair}
+            onOk={this.validateDialog} onCancel={this.cancelDialog} onChange={this.setEditPair} />
       );
-   };
+   }
 
-   const renderFreqBigrams = function (bigrams) {
-      const renderFreqBigram = function (bigram, i) {
-         return (
-            <div key={i} className='bigramBloc'>
-               <span className='frequence'>{bigram.r} %</span>
-               <div className='bigramBlocSubstitution'>
-                  <div className='bigramCipheredLetter'>
-                     {renderBigram(bigram)}
-                  </div>
-               </div>
-            </div>
-         );
-      };
+   renderFreqBigrams(bigrams) {
       return (
          <div className='x-scrollBloc'>
             <div className='labels'>
-               <div>Fréquences :</div>
-               <div>Bigrammes :</div>
+               <div>{"Fréquences :"}</div>
+               <div>{"Bigrammes :"}</div>
             </div>
-            {bigrams.map(renderFreqBigram)}
+            {bigrams.map(this.renderFreqBigram)}
+         </div>
+      );
+   }
+
+   renderFreqBigram = (bigram, i) => {
+      return (
+         <div key={i} className='bigramBloc'>
+            <span className='frequence'>{bigram.r} %</span>
+            <div className='bigramBlocSubstitution'>
+               <div className='bigramCipheredLetter'>
+                  {this.renderBigram(bigram)}
+               </div>
+            </div>
          </div>
       );
    };
 
-   const renderFreqSubstBigrams = function (bigrams, inputSubstitution, outputSubstitution) {
-      const {alphabet} = self.props.scope;
-      const {editable, selectedPos} = self.props.state;
-      const renderBigramSubstSide = function (bigram, inputPair, outputPair, side) {
-         const inputCell = inputPair.dst[side];
-         const outputCell = outputPair.dst[side];
-         const hasConflict = testConflict(inputCell, outputCell);
-         const isLocked = outputCell.q === "locked";
-         return (
-            <div className={classnames(['substitutionPair', hasConflict && 'substitutionConflict'])}>
-               <span className='originLetter'>
-                  {renderCell(alphabet, inputCell)}
-               </span>
-               {editable && <span className='newLetter'>
-                  {renderCell(alphabet, outputCell)}
-               </span>}
-               {editable && <span className='substitutionLock'>
-                  {isLocked ? <i className='fa fa-lock'></i> : ' '}
-               </span>}
-            </div>
-         );
-      };
-      const renderFreqSubstBigram = function (bigram) {
-         const {selectedBigram} = self.props.state;
-         const bigramClasses = ['bigramBlocSubstitution'];
-         if (selectedBigram && selectedBigram.v === bigram.v)
-            bigramClasses.push("selectedBigram")
-         const inputPair = getBigramSubstPair(inputSubstitution, bigram) || nullSubstPair;
-         const outputPair = getBigramSubstPair(outputSubstitution, bigram) || nullSubstPair;
-         return (
-            <div key={bigram.v} className='bigramBloc' onClick={clickBigram} data-bigram={bigram.v} >
-               <span className='frequence'>{bigram.r} %</span>
-               <div className={classnames(bigramClasses)}>
-                  <div className='bigramCipheredLetter'>{renderBigram(bigram)}</div>
-                  {renderBigramSubstSide(bigram, inputPair, outputPair, 0)}
-                  {renderBigramSubstSide(bigram, inputPair, outputPair, 1)}
-               </div>
-            </div>
-         );
-      };
+   renderFreqSubstBigrams(bigrams, inputSubstitution, outputSubstitution) {
+      const {editable} = this.props;
       return (
          <div className='x-scrollBloc'>
             <div className='labels'>
-               <div>Fréquences :</div>
-               <div>Bigrammes :</div>
+               <div>{"Fréquences :"}</div>
+               <div>{"Bigrammes :"}</div>
                {editable
-                  ? <div>Substitution d'origine :</div>
-                  : <div>Substitution :</div>}
-               {editable && <div>Nouvelle substitution :</div>}
+                  ? <div>{"Substitution d'origine :"}</div>
+                  : <div>{"Substitution :"}</div>}
+               {editable && <div>{"Nouvelle substitution :"}</div>}
             </div>
-            {bigrams.map(renderFreqSubstBigram)}
+            {bigrams.map(this.renderFreqSubstBigram)}
          </div>
       );
-   };
+   }
 
-   self.render = function () {
-      const {editable, nBigrams, editPair} = self.props.state;
-      const {inputSubstitution, outputSubstitution, mostFrequentFrench, mostFrequentBigrams} = self.props.scope;
-      const nConflicts = countSubstitutionConflicts(mostFrequentBigrams, inputSubstitution, outputSubstitution);
-      const textBigrams = renderFreqSubstBigrams(mostFrequentBigrams, inputSubstitution, outputSubstitution);
-      const frenchBigrams = renderFreqBigrams(mostFrequentFrench.slice(0, nBigrams || 10));
+   renderBigramSubstSide = (bigram, inputPair, outputPair, side) => {
+      const {editable} = this.props;
+      const inputCell = inputPair.dst[side];
+      const outputCell = outputPair.dst[side];
+      const hasConflict = testConflict(inputCell, outputCell);
+      const isLocked = outputCell.q === "locked";
       return (
-         <div className='panel panel-default'>
-            <div className='panel-heading'>
-               <span className='code'>
-                  {renderInstructionPython()}
-               </span>
-            </div>
-            <div className='panel-body'>
-               {editPair && renderEditPair()}
-               {renderVariables()}
-               <div className='bigramFrequencyAnalysis grillesSection'>
-                  {editable && <p><strong>Nombre de conflits :</strong> {nConflicts}</p>}
-                  <strong>Bigrammes les plus fréquents du texte d'entrée :</strong>
-                  {textBigrams}
-                  <strong>Bigrammes les plus fréquents en français :</strong>
-                  {frenchBigrams}
-               </div>
+         <div className={classnames(['substitutionPair', hasConflict && 'substitutionConflict'])}>
+            <span className='originLetter'>
+               {this.renderCell(inputCell)}
+            </span>
+            {editable && <span className='newLetter'>
+               {this.renderCell(outputCell)}
+            </span>}
+            {editable && <span className='substitutionLock'>
+               {isLocked ? <i className='fa fa-lock'></i> : ' '}
+            </span>}
+         </div>
+      );
+   };
+
+   renderFreqSubstBigram = (bigram) => {
+      const {selectedBigram} = this.props;
+      const bigramClasses = ['bigramBlocSubstitution'];
+      if (selectedBigram && selectedBigram.v === bigram.v) {
+         bigramClasses.push("selectedBigram")
+      }
+      const inputPair = getBigramSubstPair(this.props.inputSubstitution, bigram) || nullSubstPair;
+      const outputPair = getBigramSubstPair(this.props.outputSubstitution, bigram) || nullSubstPair;
+      return (
+         <div key={bigram.v} className='bigramBloc' onClick={this.clickBigram} data-bigram={bigram.v} >
+            <span className='frequence'>{bigram.r} %</span>
+            <div className={classnames(bigramClasses)}>
+               <div className='bigramCipheredLetter'>{this.renderBigram(bigram)}</div>
+               {this.renderBigramSubstSide(bigram, inputPair, outputPair, 0)}
+               {this.renderBigramSubstSide(bigram, inputPair, outputPair, 1)}
             </div>
          </div>
       );
    };
 
-});
-
-const compute = function (state, scope) {
-   const {substitutionEdits, nBigrams} = state;
-   const {bigramAlphabet, inputCipheredText, inputSubstitution} = scope;
-   scope.textBigrams = getTextBigrams(inputCipheredText, bigramAlphabet);
-   scope.mostFrequentBigrams = getMostFrequentBigrams(scope.textBigrams, nBigrams || 10);
-   scope.outputSubstitution = applySubstitutionEdits(bigramAlphabet, inputSubstitution, substitutionEdits);
-};
-
-const noSelection = {
-   editPair: undefined,
-   selectedBigram: undefined
-};
-
-const initialState = {
-   nBigrams: 10,
-   ...noSelection
-};
-
-export default function BigramFrequencyAnalysis () {
-   this.Component = Component;
-   this.compute = compute;
-   this.state = initialState;
-   this.dump = function (state) {
-      const {substitutionEdits, inputCipheredTextVariable,
-         inputSubstitutionVariable, outputSubstitutionVariable,
-         editable} = state;
-      return {substitutionEdits, inputCipheredTextVariable,
-         inputSubstitutionVariable, outputSubstitutionVariable,
-         editable};
-   };
-   this.load = function (dump) {
-      const {substitutionEdits} = dump;
-      return {...initialState, ...dump};
-   };
-   this.reducers.SelectBigram = function (state, action) {
-      if (!state.editable) {
-         return state;
+   clickBigram = (event) => {
+      if (this.props.editable) {
+         const bigram = event.currentTarget.getAttribute('data-bigram');
+         this.props.dispatch({type: this.props.actions.bigramFrequencyAnalysisSelectBigram, payload: {bigram}});
       }
-      const {bigram} = action;
-      const {substitutionEdits} = state;
-      const editPair = substitutionEdits[bigram.v] || [{locked: false}, {locked: false}];
-      return {
-         ...state,
-         selectedBigram: bigram,
-         editPair: editPair
-      };
    };
-   this.reducers.SetEditPair = function (state, action) {
-      const {editPair} = action;
-      return {...state, editPair};
+
+   setEditPair = (editPair) => {
+      this.props.dispatch({type: this.props.actions.bigramFrequencyAnalysisSetEditPair, payload: {editPair}});
    };
-   this.reducers.ApplyEdit = function (state, action) {
-      const {bigram, editPair} = action;
-      let newEdits = {...state.substitutionEdits};
-      if (!editPair[0] && !editPair[1]) {
-         delete newEdits[bigram.v];
-      } else {
-         newEdits[bigram.v] = editPair;
+
+   validateDialog = (editPair) => {
+      const bigram = this.props.selectedBigram;
+      this.props.dispatch({type: this.props.actions.bigramFrequencyAnalysisApplyEdit, payload: {bigram, editPair}});
+   };
+
+   cancelDialog = () => {
+      this.props.dispatch({type: this.props.actions.bigramFrequencyAnalysisCancelEdit});
+   };
+
+}
+
+function taskInitReducer (state, _action) {
+   return update(state, {bigramFrequencyAnalysis: {
+      $set: {
+         nBigrams: 10,
+         substitutionEdits: {},
+         selectedBigram: undefined,
+         editPair: undefined,
       }
-      return {...state, ...noSelection, substitutionEdits: newEdits};
-   };
-   this.reducers.CancelEdit = function (state, action) {
-      return {...state, noSelection};
-   };
+   }});
+}
+
+function selectBigramReducer(state, action) {
+   const {bigram} = action.payload;
+   const {substitutionEdits} = state.bigramFrequencyAnalysis;
+   const editPair = substitutionEdits[bigram.v] || [{locked: false}, {locked: false}];
+   return update(state, {bigramFrequencyAnalysis: {
+      selectedBigram: {$set: bigram},
+      editPair: {$set: editPair},
+   }});
+}
+
+function setEditPairReducer(state, action) {
+   const {editPair} = action.payload;
+   return update(state, {bigramFrequencyAnalysis: {
+      editPair: {$set: editPair},
+   }});
+}
+
+function applyEditReducer(state, action) {
+   const {bigram, editPair} = action.payload;
+   let change;
+   if (!editPair[0] && !editPair[1]) {
+      change = {$unset: [bigram.v]};
+   } else {
+      change = {[bigram.v]: {$set: editPair}};
+   }
+   return update(state, {bigramFrequencyAnalysis: {substitutionEdits: change}});
+}
+
+function cancelEditReducer (state, action) {
+   return update(state, {bigramFrequencyAnalysis: {
+      selectedBigram: {$set: undefined},
+      editPair: {$set: undefined},
+   }});
+}
+
+function lateReducer (state) {
+   if (state.taskReady) {
+      const {bigramAlphabet} = state;
+      const {substitutionEdits, nBigrams} = state.bigramFrequencyAnalysis;
+      const inputCipheredText = state.taskData.cipherText; // TextInput.output
+      const inputSubstitution = state.editSubstitution.outputSubstitution;
+      const textBigrams = getTextBigrams(inputCipheredText, bigramAlphabet);
+      const mostFrequentBigrams = getMostFrequentBigrams(textBigrams, nBigrams || 10);
+      const outputSubstitution = applySubstitutionEdits(bigramAlphabet, inputSubstitution, substitutionEdits);
+      const nConflicts = countSubstitutionConflicts(mostFrequentBigrams, inputSubstitution, outputSubstitution);
+      state = update(state, {bigramFrequencyAnalysis: {
+         inputCipheredText: {$set: inputCipheredText},
+         inputSubstitution: {$set: inputSubstitution},
+         textBigrams: {$set: textBigrams},
+         mostFrequentBigrams: {$set: mostFrequentBigrams},
+         outputSubstitution: {$set: outputSubstitution},
+         nConflicts: {$set: nConflicts},
+      }});
+   }
+   return state;
+}
+
+export default {
+   actions: {
+      bigramFrequencyAnalysisSelectBigram: 'Task.BigramFrequencyAnalysis.SelectBigram',
+      bigramFrequencyAnalysisSetEditPair: 'Task.BigramFrequencyAnalysis.SetEditPair',
+      bigramFrequencyAnalysisApplyEdit: 'Task.BigramFrequencyAnalysis.ApplyEdit',
+      bigramFrequencyAnalysisCancelEdit: 'Task.BigramFrequencyAnalysis.CancelEdit',
+   },
+   actionReducers: {
+      taskInit: taskInitReducer,
+      bigramFrequencyAnalysisSelectBigram: selectBigramReducer,
+      bigramFrequencyAnalysisSetEditPair: setEditPairReducer,
+      bigramFrequencyAnalysisApplyEdit: applyEditReducer,
+      bigramFrequencyAnalysisCancelEdit: cancelEditReducer,
+   },
+   views: {
+      BigramFrequencyAnalysis: connect(BigramFrequencyAnalysisSelector)(BigramFrequencyAnalysis)
+   },
+   lateReducer
 };

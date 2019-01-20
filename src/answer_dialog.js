@@ -1,27 +1,25 @@
 import React from 'react';
-import EpicComponent from 'epic-component';
 import {Alert, Button} from 'react-bootstrap';
 
-const AnswerDialog = EpicComponent(self => {
+class AnswerDialog extends React.PureComponent {
 
-   let address, number1, number2;
-   const refAddress = el => { address = el; };
-   const refNumber1 = el => { number1 = el; };
-   const refNumber2 = el => { number2 = el; };
+   _refAddress = el => { this._address = el; };
+   _refNumber1 = el => { this._number1 = el; };
+   _refNumber2 = el => { this._number2 = el; };
 
-   const onSubmit = function () {
-      self.props.submit({
-         a: address.value, n1: number1.value, n2: number2.value
+   _onSubmit = () => {
+      this.props.submit({
+         a: this._address.value, n1: this._number1.value, n2: this._number2.value
       });
    };
 
-   self.componentDidMount = function () {
+   componentDidMount () {
       // When the component mounts, select the first input box.
-      address && address.focus();
+      this._address && this._address.focus();
    };
 
-   self.render = function () {
-      const {answers, feedback, onSuccess} = self.props;
+   render () {
+      const {answers, feedback, onSuccess} = this.props;
       return (
          <div className='playfair-answer-dialog'>
             <div className='section'>
@@ -36,20 +34,20 @@ const AnswerDialog = EpicComponent(self => {
                </p>
                <p className="input">
                   <label htmlFor="answer-a">{'Adresse : '}</label>
-                  <input type="text" id="answer-a" ref={refAddress} />
+                  <input type="text" id="answer-a" ref={this._refAddress} />
                   <span>{' (le numéro doit être en chiffres ; par exemple : 125 RUE DE LA PAIX)'}</span>
                </p>
                <p className="input">
                   <label htmlFor="answer-n1">{'Nombre 1 : '}</label>
-                  <input type="text" id="answer-n1" ref={refNumber1} />
+                  <input type="text" id="answer-n1" ref={this._refNumber1} />
                   <span>{' (il doit contenir 2 chiffres)'}</span>
                </p>
                <p className="input">
                   <label htmlFor="answer-n2">{'Nombre 2 : '}</label>
-                  <input type="text" id="answer-n2" ref={refNumber2} />
+                  <input type="text" id="answer-n2" ref={this._refNumber2} />
                   <span>{' (il doit contenir 3 chiffres)'}</span>
                </p>
-               <p><Button onClick={onSubmit}>Soumettre</Button></p>
+               <p><Button onClick={this._onSubmit}>Soumettre</Button></p>
             </div>
             {feedback && <Feedback feedback={feedback} onSuccess={onSuccess}/>}
             <div className='section'>
@@ -86,15 +84,15 @@ const AnswerDialog = EpicComponent(self => {
       );
    };
 
-});
+};
 
-const Feedback = EpicComponent(self => {
+const fullScore = <p>Votre score est la totalité de vos points disponibles.</p>;
+const halfScore = <p>Votre score est égal à la moitié de vos points disponibles.</p>;
 
-   const fullScore = <p>Votre score est la totalité de vos points disponibles.</p>;
-   const halfScore = <p>Votre score est égal à la moitié de vos points disponibles.</p>;
+class Feedback extends React.PureComponent {
 
-   self.render = function () {
-      const {feedback, onSuccess} = self.props;
+   render () {
+      const {feedback, onSuccess} = this.props;
       return (
          <div className='playfair-feedback'>
             {feedback.address
@@ -130,8 +128,8 @@ const Feedback = EpicComponent(self => {
                   : <Alert bsStyle='danger'>Ni l'adresse ni les nombres ne sont les bons.</Alert>)}
          </div>
       );
-   };
+   }
 
-});
+};
 
 export default AnswerDialog;

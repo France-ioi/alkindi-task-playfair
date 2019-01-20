@@ -1,41 +1,57 @@
-
-const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
+
+
+const isDev = process.env.NODE_ENV !== 'production';
 
 const config = module.exports = {
   entry: {
     index: './src/index.js'
   },
+  externals: { /* TODO: clean this up by not having a dual browser/node module */
+    fs: true,
+    mime: true
+  },
   output: {
     path: path.join(__dirname, 'build'),
+    filename: 'bundle.js',
     publicPath: 'build/',
-    filename: '[name].js'
+    libraryTarget: "var",
+    library: "ReactTask"
   },
   module: {
-    loaders: [
+    rules: [
       {
         test: /\.js$/,
         include: path.resolve(__dirname, 'src'),
-        loader: 'babel-loader',
-        query: {
-          babelrc: true
-        }
+        use: [
+          {loader: 'babel-loader', options: {babelrc: true}}
+        ]
       },
       {
         test: /\.css$/,
-        loader: 'style-loader!css-loader'
+        use: [
+          {loader: 'style-loader', options: {sourceMap: isDev}},
+          {loader: 'css-loader', options: {modules: false}},
+        ]
       },
       {
         test: /\.(eot|svg|ttf|woff(2)?)(\?v=\d+\.\d+\.\d+)?/,
-        loader: 'file-loader?name=fonts/[name].[ext]',
-        options: {
-          publicPath: 'build/'
-        }
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name: 'fonts/[name].[ext]',
+              publicPath: 'build/'
+            }
+          }
+        ]
       },
       {
         test: /\.(ico|gif|png|jpg|jpeg|svg)$/,
-        loader: 'file-loader?context=public&name=images/[name].[ext]'
+        use: [
+          {loader: 'file-loader', options: {name: 'images/[name].[ext]'}}
+        ]
       }
     ]
   },
@@ -46,11 +62,18 @@ const config = module.exports = {
       }
     }),
     new webpack.optimize.OccurrenceOrderPlugin(),
-    new webpack.optimize.CommonsChunkPlugin({name: "vendor", filename: "vendor.js"})
-  ]
+    new webpack.optimize.CommonsChunkPlugin({
+      name: "vendor",
+      filename: "vendor.js",
+      minChunks: function (module) { return /node_modules/.test(module.resource); }
+    })
+  ],
+  resolve: {
+    extensions: ['.js']
+  }
 };
 
-if (process.env.NODE_ENV !== 'production') {
+if (isDev) {
   config.devtool = 'inline-source-map';
 } else {
   config.plugins.push(new webpack.optimize.UglifyJsPlugin({

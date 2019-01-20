@@ -1,30 +1,51 @@
 import React from 'react';
-import EpicComponent from 'epic-component';
+import {connect} from 'react-redux';
 import classnames from 'classnames';
-import {Python, Variables} from 'alkindi-task-lib/ui';
+import update from 'immutability-helper';
 
+import {Python, Variables} from '../ui';
 import {getCellLetter, getQualifierClass} from '../utils/cell';
 import {getCellsWrapping} from '../utils/wrapping';
 import {getTextAsBigrams} from '../utils/bigram';
 import {applySubstitution} from '../utils/bigram_subst';
 
-export const Component = EpicComponent(self => {
+function ApplySubstitutionSelector (state) {
+   const {alphabet} = state;
+   const {inputText, inputSubstitution, outputText, lineStartCols} = state.applySubstitution;
+   return {alphabet, inputText, inputSubstitution, outputText, lineStartCols};
+}
+
+class ApplySubstitution extends React.PureComponent {
 
    /*
-      props:
-         state:
-            inputTextVariable
-            inputSubstitutionVariable
-            outputTextVariable
-         scope:
-            alphabet
-            inputText
-            inputSubstitution
-            outputText
+      inputTextVariable
+      inputSubstitutionVariable
+      outputTextVariable
+      alphabet
+      inputText
+      inputSubstitution
+      outputText
+      lineStartCols
    */
 
-   const renderInstructionPython = function () {
-      const {outputTextVariable, inputSubstitutionVariable, inputTextVariable} = self.props.state;
+   render () {
+      return (
+         <div className='panel panel-default'>
+            <div className='panel-heading'>
+               <span className='code'>
+                  {this.renderInstructionPython()}
+               </span>
+            </div>
+            <div className='panel-body'>
+               {this.renderVariables()}
+               {this.renderText()}
+            </div>
+         </div>
+      );
+   }
+
+   renderInstructionPython () {
+      const {outputTextVariable, inputSubstitutionVariable, inputTextVariable} = this.props;
       return (
          <Python.Assign>
             <Python.Var name={outputTextVariable}/>
@@ -34,10 +55,10 @@ export const Component = EpicComponent(self => {
             </Python.Call>
          </Python.Assign>
       );
-   };
+   }
 
-   const renderVariables = function () {
-      const {inputTextVariable, inputSubstitutionVariable, outputTextVariable} = self.props.state;
+   renderVariables () {
+      const {inputTextVariable, inputSubstitutionVariable, outputTextVariable} = this.props;
       const inputVars = [
          {label: "Texte chiffré", name: inputTextVariable},
          {label: "Substitution appliquée", name: inputSubstitutionVariable}
@@ -46,16 +67,10 @@ export const Component = EpicComponent(self => {
          {label: "Texte déchiffré", name: outputTextVariable}
       ];
       return <Variables inputVars={inputVars} outputVars={outputVars} />;
-   };
+   }
 
-   const renderCell = function (alphabet, cell, key) {
-      const classes = ['substituedLetter', getQualifierClass(cell.q)];
-      const letter = 'l' in cell ? getCellLetter(alphabet, cell, true) : cell.c;
-      return <span key={key} className={classnames(classes)}>{letter}</span>;
-   };
-
-   const renderText = function () {
-      const {alphabet, outputText, lineStartCols} = self.props.scope;
+   renderText () {
+      const {alphabet, outputText, lineStartCols} = this.props;
       let line = 0;
       const elements = [];
       for (let iCell = 0; iCell < outputText.length; iCell++) {
@@ -64,41 +79,53 @@ export const Component = EpicComponent(self => {
             line++;
          }
          const cell = outputText[iCell];
-         elements.push(renderCell(alphabet, cell, iCell));
+         elements.push(<Cell key={iCell} alphabet={alphabet} cell={cell} />);
       }
       return <div className='y-scrollBloc applySubstitution'>{elements}</div>;
-   };
+   }
 
-   self.render = function () {
-      return (
-         <div className='panel panel-default'>
-            <div className='panel-heading'>
-               <span className='code'>
-                  {renderInstructionPython()}
-               </span>
-            </div>
-            <div className='panel-body'>
-               {renderVariables()}
-               {renderText()}
-            </div>
-         </div>
-      );
-   };
+}
 
-});
+function Cell ({alphabet, cell}) {
+   const classes = ['substituedLetter', getQualifierClass(cell.q)];
+   const letter = 'l' in cell ? getCellLetter(alphabet, cell, true) : cell.c;
+   return <span className={classnames(classes)}>{letter}</span>;
+}
 
-export const compute = function (state, scope) {
-   const {nbLettersPerRow} = state;
-   const {bigramAlphabet, inputSubstitution, inputText} = scope;
-   scope.letterInfos = getTextAsBigrams(inputText, bigramAlphabet).letterInfos;
-   scope.outputText = applySubstitution(inputSubstitution, scope.letterInfos);
-   scope.lineStartCols = getCellsWrapping(scope.outputText, nbLettersPerRow);
-};
+function taskInitReducer (state, _action) {
+   return update(state, {applySubstitution: {
+      $set: {
+         nbLettersPerRow: 29
+      }
+   }});
+}
 
-export default function ApplySubstitution () {
-   this.Component = Component;
-   this.compute = compute;
-   this.state = {
-      nbLettersPerRow: 29
-   };
+function lateReducer (state) {
+   if (state.taskReady) {
+      const {bigramAlphabet} = state;
+      const {nbLettersPerRow} = state.applySubstitution;
+      const inputText = state.textInput.outputText;
+      const inputSubstitution = state.editSubstitution.outputSubstitution;
+      const letterInfos = getTextAsBigrams(inputText, bigramAlphabet).letterInfos;
+      const outputText = applySubstitution(inputSubstitution, letterInfos);
+      const lineStartCols = getCellsWrapping(outputText, nbLettersPerRow);
+      state = update(state, {applySubstitution: {
+         inputText: {$set: inputText},
+         inputSubstitution: {$set: inputSubstitution},
+         letterInfos: {$set: letterInfos},
+         outputText: {$set: outputText},
+         lineStartCols: {$set: lineStartCols},
+      }});
+   }
+   return state;
+}
+
+export default {
+   actionReducers: {
+      taskInit: taskInitReducer,
+   },
+   views: {
+      ApplySubstitution: connect(ApplySubstitutionSelector)(ApplySubstitution)
+   },
+   lateReducer
 };

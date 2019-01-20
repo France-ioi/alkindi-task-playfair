@@ -1,68 +1,90 @@
 import React from 'react';
-import EpicComponent from 'epic-component';
+import {connect} from 'react-redux';
 import classnames from 'classnames';
-import {Python, Variables, Tooltip} from 'alkindi-task-lib/ui';
+import update from 'immutability-helper';
 
+import {Python, Variables, Tooltip} from '../ui';
 import {getCellLetter, getQualifierClass, testConflict} from '../utils/cell';
 import {getStringWrapping} from '../utils/wrapping';
 import {getTextAsBigrams, sideOfStatus} from '../utils/bigram';
 import {getBigramSubstPair, nullSubstPair, countAllSubstitutionConflicts, applySubstitutionEdits} from '../utils/bigram_subst';
 import EditPairDialog from '../utils/edit_pair_dialog';
 
-const Component = EpicComponent(self => {
+function EditSubstitutionSelector (state) {
+   const {actions, alphabet} = state;
+   const {selectedLetterPos, selectedBigram, editPair, nbLettersPerRow, substitutionEdits} = state.editSubstitution;
+   const {inputCipheredText, inputSubstitution, letterInfos, lineStartCols, outputSubstitution, nConflicts} = state.editSubstitution;
+   return {
+      actions, alphabet,
+      selectedLetterPos, selectedBigram, editPair, nbLettersPerRow, substitutionEdits,
+      inputCipheredText, inputSubstitution, letterInfos, lineStartCols, outputSubstitution, nConflicts
+   };
+}
+
+class EditSubstitution extends React.PureComponent {
 
    /*
       props:
-         state:
-            inputCipheredTextVariable
-            inputSubstitutionVariable
-            outputSubstitutionVariable
-            substitutionEdits
-         scope:
-            alphabet
-            inputCipheredText
-            inputSubstitution
-            outputSubstitution
+         inputCipheredTextVariable
+         inputSubstitutionVariable
+         outputSubstitutionVariable
+         alphabet
+         inputCipheredText
+         inputSubstitution
+         outputSubstitution
+         substitutionEdits
+         letterInfos
+         lineStartCols
+         selectedLetterPos
+         selectedBigram
+         editPair
+         nConflicts
    */
 
-   const selectLetter = function (event) {
-      const iLetter = parseInt(event.currentTarget.getAttribute('data-i'));
-      const {letterInfos} = self.props.scope;
-      const bigram = letterInfos[iLetter].bigram;
-      if (bigram !== undefined) {
-         self.props.dispatch({type: 'SelectLetter', letterPos: iLetter, bigram});
-      }
-   };
+   render() {
+      const {nConflicts, editPair} = this.props;
+      return (
+         <div className='panel panel-default'>
+            <div className='panel-heading'>
+               <span className='code'>
+                  {this.renderInstructionPython()}
+               </span>
+            </div>
+            <div className='panel-body'>
+               {editPair && this.renderEditPair()}
+               {this.renderVariables()}
+               <div className='editSubstitution grillesSection'>
+                  <p>
+                     <strong>{"Nombre de conflits entre les substitutions :"}</strong>
+                     {' '}{nConflicts}
+                  </p>
+                  <p>
+                     {'Édition de la substitution, au fil du message chiffré découpé en bigrammes : '}
+                     <Tooltip content={<p>{"Cliquez sur un bigramme chiffré pour définir le bigramme déchiffré correspondant."}</p>}/>
+                  </p>
+                  {this.renderSubstBigrams()}
+               </div>
+            </div>
+         </div>
+      );
+   }
 
-   const setEditPair = function (editPair) {
-      self.props.dispatch({type: 'SetEditPair', editPair});
-   };
-
-   const validateDialog = function (editPair) {
-      const bigram = self.props.state.selectedBigram;
-      self.props.dispatch({type: 'ApplyEdit', bigram, editPair});
-   };
-
-   const cancelDialog = function () {
-      self.props.dispatch({type: 'CancelEdit'});
-   };
-
-   const renderInstructionPython = function () {
-      const {inputCipheredTextVariable, inputSubstitutionVariable, outputSubstitutionVariable} = self.props.state;
+   renderInstructionPython() {
+      const {inputCipheredTextVariable, inputSubstitutionVariable, outputSubstitutionVariable} = this.props;
       return (
          <Python.Assign>
             <Python.Var name={outputSubstitutionVariable}/>
             <Python.Call name="éditeSubstitution">
                <Python.Var name={inputCipheredTextVariable}/>
                <Python.Var name={inputSubstitutionVariable}/>
-               <span>…</span>
+               <span>{"…"}</span>
             </Python.Call>
          </Python.Assign>
       );
-   };
+   }
 
-   const renderVariables = function () {
-      const {inputCipheredTextVariable, inputSubstitutionVariable, outputSubstitutionVariable} = self.props.state;
+   renderVariables() {
+      const {inputCipheredTextVariable, inputSubstitutionVariable, outputSubstitutionVariable} = this.props;
       const inputVars = [
          {label: "Texte chiffré analysé", name: inputCipheredTextVariable},
          {label: "Substitution d'origine", name: inputSubstitutionVariable}
@@ -73,9 +95,8 @@ const Component = EpicComponent(self => {
       return <Variables inputVars={inputVars} outputVars={outputVars} />;
    };
 
-   const renderEditPair = function () {
-      const {selectedLetterPos, editPair} = self.props.state;
-      const {alphabet, letterInfos, inputSubstitution} = self.props.scope;
+   renderEditPair() {
+      const {selectedLetterPos, editPair, alphabet, letterInfos, inputSubstitution} = this.props;
       const letterInfo = letterInfos[selectedLetterPos];
       const bigram = letterInfo.bigram;
       const side = sideOfStatus[letterInfo.status];
@@ -83,16 +104,16 @@ const Component = EpicComponent(self => {
       return (
          <EditPairDialog
             alphabet={alphabet} bigram={bigram} editPair={editPair} substPair={substPair}
-            onOk={validateDialog} onCancel={cancelDialog} onChange={setEditPair} focusSide={side} />
+            onOk={this.validateDialog} onCancel={this.cancelDialog} onChange={this.setEditPair} focusSide={side} />
       );
-   };
+   }
 
-   const renderCell = function (alphabet, cell) {
+   renderCell(alphabet, cell) {
       const classes = ['bigramLetter', getQualifierClass(cell.q)];
       return <span className={classnames(classes)}>{getCellLetter(alphabet, cell, true)}</span>;
-   };
+   }
 
-   const renderBigramSubstSide = function (alphabet, bigram, inputPair, outputPair, side) {
+   renderBigramSubstSide(alphabet, bigram, inputPair, outputPair, side) {
       const inputCell = inputPair.dst[side];
       const outputCell = outputPair.dst[side];
       const hasConflict = testConflict(inputCell, outputCell);
@@ -100,31 +121,30 @@ const Component = EpicComponent(self => {
       return (
          <div className={classnames(['substitutionPair', hasConflict && 'substitutionConflict'])}>
             <span className='originLetter'>
-               {renderCell(alphabet, inputCell)}
+               {this.renderCell(alphabet, inputCell)}
             </span>
             <span className='newLetter'>
-               {renderCell(alphabet, outputCell)}
+               {this.renderCell(alphabet, outputCell)}
             </span>
             <span className='substitutionLock'>
                {isLocked ? <i className='fa fa-lock'></i> : ' '}
             </span>
          </div>
       );
-   };
+   }
 
-   const renderLiteralSubstSide = function (letter) {
+   renderLiteralSubstSide(letter) {
       return (
          <div className='substitutionPair'>
             <div className='character'>{letter}</div>
             <div className='character'>{letter}</div>
-            <div className='character'> </div>
+            <div className='character'>{" "}</div>
          </div>
       );
-   };
+   }
 
-   const renderSubstBigrams = function () {
-      const {alphabet, inputCipheredText, inputSubstitution, outputSubstitution, letterInfos, lineStartCols} = self.props.scope;
-      const {selectedLetterPos} = self.props.state;
+   renderSubstBigrams() {
+      const {alphabet, inputCipheredText, inputSubstitution, outputSubstitution, letterInfos, lineStartCols, selectedLetterPos} = this.props;
       const selectedBigramPos = selectedLetterPos && letterInfos[selectedLetterPos].iBigram;
       let line = 0;
       const elements = [];
@@ -140,9 +160,9 @@ const Component = EpicComponent(self => {
          if (side !== undefined) {
             const inputPair = getBigramSubstPair(inputSubstitution, bigram) || nullSubstPair;
             const outputPair = getBigramSubstPair(outputSubstitution, bigram) || nullSubstPair;
-            substBlock = renderBigramSubstSide(alphabet, bigram, inputPair, outputPair, side);
+            substBlock = this.renderBigramSubstSide(alphabet, bigram, inputPair, outputPair, side);
          } else {
-            substBlock = renderLiteralSubstSide(letter);
+            substBlock = this.renderLiteralSubstSide(letter);
          }
          const bigramClasses = [
             'letterSubstBloc',
@@ -150,51 +170,38 @@ const Component = EpicComponent(self => {
             iBigram !== undefined && selectedBigramPos === iBigram && 'selectedBigram'
          ];
          elements.push(
-            <div key={iLetter} className={classnames(bigramClasses)} onClick={selectLetter} data-i={iLetter}>
+            <div key={iLetter} className={classnames(bigramClasses)} onClick={this.selectLetter} data-i={iLetter}>
                <div className='cipheredLetter'>{letter}</div>
                {substBlock}
             </div>
          );
       }
       return <div className='y-scrollBloc'>{elements}</div>;
+   }
+
+   selectLetter = (event) => {
+      const iLetter = parseInt(event.currentTarget.getAttribute('data-i'));
+      const {letterInfos} = this.props;
+      const bigram = letterInfos[iLetter].bigram;
+      if (bigram !== undefined) {
+         this.props.dispatch({type: this.props.actions.taskSelectLetter, payload: {letterPos: iLetter, bigram}});
+      }
    };
 
-   self.render = function () {
-      const {editPair} = self.props.state;
-      const {nConflicts} = self.props.scope;
-      return (
-         <div className='panel panel-default'>
-            <div className='panel-heading'>
-               <span className='code'>
-                  {renderInstructionPython()}
-               </span>
-            </div>
-            <div className='panel-body'>
-               {editPair && renderEditPair()}
-               {renderVariables()}
-               <div className='editSubstitution grillesSection'>
-                  <p><strong>Nombre de conflits entre les substitutions :</strong>{' '}{nConflicts}</p>
-                  <p>
-                     {'Édition de la substitution, au fil du message chiffré découpé en bigrammes : '}
-                     <Tooltip content={<p>Cliquez sur un bigramme chiffré pour définir le bigramme déchiffré correspondant.</p>}/>
-                  </p>
-                  {renderSubstBigrams()}
-               </div>
-            </div>
-         </div>
-      );
+   setEditPair = (editPair) => {
+      this.props.dispatch({type: this.props.actions.taskSetEditPair, payload: {editPair}});
    };
 
-});
+   validateDialog = (editPair) => {
+      const bigram = this.props.selectedBigram;
+      this.props.dispatch({type: this.props.actions.taskApplyEdit, payload: {bigram, editPair}});
+   };
 
-const compute = function (state, scope) {
-   const {substitutionEdits, nbLettersPerRow} = state;
-   const {alphabet, bigramAlphabet, inputCipheredText, inputSubstitution} = scope;
-   scope.letterInfos = getTextAsBigrams(inputCipheredText, bigramAlphabet).letterInfos;
-   scope.lineStartCols = getStringWrapping(inputCipheredText, nbLettersPerRow, alphabet);
-   scope.outputSubstitution = applySubstitutionEdits(bigramAlphabet, inputSubstitution, substitutionEdits);
-   scope.nConflicts = countAllSubstitutionConflicts(bigramAlphabet, inputSubstitution, scope.outputSubstitution);
-};
+   cancelDialog = () => {
+      this.props.dispatch({type: this.props.actions.taskCancelEdit});
+   };
+
+}
 
 const noSelection = {
    selectedLetterPos: undefined,
@@ -202,51 +209,89 @@ const noSelection = {
    editPair: undefined
 };
 
-const initialState = {
-   nbLettersPerRow: 29,
-   substitutionEdits: {},
-   ...noSelection
-};
-
-export default function EditSubstitution () {
-   this.Component = Component;
-   this.compute = compute;
-   this.state = initialState;
-   this.dump = function (state) {
-      const {substitutionEdits, inputCipheredTextVariable,
-         inputSubstitutionVariable, outputSubstitutionVariable} = state;
-      return {substitutionEdits, inputCipheredTextVariable,
-         inputSubstitutionVariable, outputSubstitutionVariable};
-   };
-   this.load = function (dump) {
-      return {...initialState, ...dump};
-   };
-   this.reducers.SelectLetter = function (state, action) {
-      const {letterPos, bigram} = action;
-      const {substitutionEdits} = state;
-      const editPair = substitutionEdits[bigram.v] || [{locked: false}, {locked: false}];
-      return {
-         ...state,
-         selectedLetterPos: letterPos,
-         selectedBigram: bigram,
-         editPair: editPair
-      };
-   };
-   this.reducers.SetEditPair = function (state, action) {
-      const {editPair} = action;
-      return {...state, editPair};
-   };
-   this.reducers.ApplyEdit = function (state, action) {
-      const {bigram, editPair} = action;
-      let newEdits = {...state.substitutionEdits};
-      if (!editPair[0] && !editPair[1]) {
-         delete newEdits[bigram.v];
-      } else {
-         newEdits[bigram.v] = editPair;
+function taskInitReducer (state, _action) {
+   const {taskData} = state;
+   const u = {q: 'unknown'};
+   const row = [u,u,u,u,u];
+   return update(state, {editSubstitution: {
+      $set: {
+         ...noSelection,
+         nbLettersPerRow: 29,
+         substitutionEdits: {},
       }
-      return {...state, ...noSelection, substitutionEdits: newEdits};
+   }});
+}
+
+function selectLetterReducer (state, action) {
+   const {letterPos, bigram} = action;
+   const {substitutionEdits} = state;
+   const editPair = substitutionEdits[bigram.v] || [{locked: false}, {locked: false}];
+   return {
+      ...state,
+      selectedLetterPos: letterPos,
+      selectedBigram: bigram,
+      editPair: editPair
    };
-   this.reducers.CancelEdit = function (state, action) {
-      return {...state, noSelection};
-   };
+}
+
+function setEditPairReducer (state, action) {
+   const {editPair} = action;
+   return {...state, editPair};
+}
+
+function applyEditReducer (state, action) {
+   const {bigram, editPair} = action;
+   let newEdits = {...state.substitutionEdits};
+   if (!editPair[0] && !editPair[1]) {
+      delete newEdits[bigram.v];
+   } else {
+      newEdits[bigram.v] = editPair;
+   }
+   return {...state, ...noSelection, substitutionEdits: newEdits};
+}
+
+function cancelEditReducer (state, action) {
+   return {...state, noSelection};
+}
+
+function lateReducer (state) {
+   if (state.taskReady) {
+      const {alphabet, bigramAlphabet} = state;
+      const inputCipheredText = state.textInput.outputText;
+      const inputSubstitution = state.substitutionFromGrid.outputSubstitution;
+      const {substitutionEdits, nbLettersPerRow} = state.editSubstitution;
+      const letterInfos = getTextAsBigrams(inputCipheredText, bigramAlphabet).letterInfos;
+      const lineStartCols = getStringWrapping(inputCipheredText, nbLettersPerRow, alphabet);
+      const outputSubstitution = applySubstitutionEdits(bigramAlphabet, inputSubstitution, substitutionEdits);
+      const nConflicts = countAllSubstitutionConflicts(bigramAlphabet, inputSubstitution, outputSubstitution);
+      state = update(state, {editSubstitution: {
+         inputCipheredText: {$set: inputCipheredText},
+         inputSubstitution: {$set: inputSubstitution},
+         letterInfos: {$set: letterInfos},
+         lineStartCols: {$set: lineStartCols},
+         outputSubstitution: {$set: outputSubstitution},
+         nConflicts: {$set: nConflicts},
+      }});
+   }
+   return state;
+}
+
+export default {
+   actions: {
+      editSubstitutionSelectLetter: 'Task.EditSubstitution.SelectLetter',
+      editSubstitutionSetEditPair: 'Task.EditSubstitution.SetEditPair',
+      editSubstitutionApplyEdit: 'Task.EditSubstitution.ApplyEdit',
+      editSubstitutionCancelEdit: 'Task.EditSubstitution.CancelEdit',
+   },
+   actionReducers: {
+      taskInit: taskInitReducer,
+      editSubstitutionSelectLetter: selectLetterReducer,
+      editSubstitutionSetEditPair: setEditPairReducer,
+      editSubstitutionApplyEdit: applyEditReducer,
+      editSubstitutionCancelEdit: cancelEditReducer,
+   },
+   views: {
+      EditSubstitution: connect(EditSubstitutionSelector)(EditSubstitution)
+   },
+   lateReducer
 };

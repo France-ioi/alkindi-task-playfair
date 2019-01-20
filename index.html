@@ -1,9 +1,30 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<div id="task">
-  <div id="container" class="container"></div>
-</div>
-<script src="dist/index.js"></script>
-<script type="text/javascript">
-  Task.run({container: document.getElementById('container'), view: 'task'});
-</script>
+<head>
+    <meta charset="utf-8">
+    <!-- legacy -->
+    <script class="remove" type="text/javascript" src="bebras-modules/ext/jschannel/jschannel.js"></script>
+    <script class="remove" type="text/javascript" src="bebras-modules/integrationAPI.01/official/platform-pr.js"></script>
+    <script class="remove" type="text/javascript" src="bebras-modules/ext/jquery/2.1/jquery.min.js"></script>
+    <script class="remove" type="text/javascript" src="bebras-modules/integrationAPI.01/official/miniPlatform.js"></script>
+
+    <!-- task -->
+    <script src="build/vendor.js?v=2"></script>
+    <script src="build/bundle.js?v=2"></script>
+</head>
+<body>
+    <div id="container" class="container"></div>
+    <script type="text/javascript">
+        window.stringsLanguage = 'fr';
+        var options = {
+            server_module: {
+                baseUrl: 'https://home.epixode.fr/bebras-modules/',
+                devel: {
+                    itemUrl: "?taskID=http%3A%2F%2Fconcours-alkindi.fr%2Ftasks%2F2018%2Fplayfair&version=1",
+                    randomSeed: 1,
+                    sHintsRequested: JSON.stringify([]),
+                }
+            }
+        };
+        window.app = ReactTask.run(document.getElementById('container'), options);
+    </script>
+</body>

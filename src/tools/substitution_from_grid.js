@@ -1,8 +1,9 @@
 import React from 'react';
-import EpicComponent from 'epic-component';
+import {connect} from 'react-redux';
 import classnames from 'classnames';
-import {Python, Variables, Tooltip} from 'alkindi-task-lib/ui';
+import update from 'immutability-helper';
 
+import {Python, Variables, Tooltip} from '../ui';
 import {put, at} from '../utils/misc';
 import {getCellLetter} from '../utils/cell';
 import {applyGridEdit} from '../utils/grid';
@@ -11,88 +12,30 @@ import {Grid} from '../utils/grid_view';
 import {Substitution} from '../utils/substitution_view';
 import EditCellDialog from '../utils/edit_cell_dialog';
 
-const Component = EpicComponent(self => {
+function SubstitutionFromGridSelector (state) {
+   const {actions, alphabet, hintsGrid} = state;
+   const {selectedRow, selectedCol, editCell, editGrid, outputGrid, outputSubstitution} = state.substitutionFromGrid;
+   return {actions, alphabet, selectedRow, selectedCol, editCell,
+      inputGrid: hintsGrid, outputGrid, outputSubstitution};
+}
+
+class SubstitutionFromGrid extends React.PureComponent {
 
    /*
       props:
-         state
-            editGrid
-            inputGridVariable
-            outputGridVariable
-            outputSubstitutionVariable
-         scope
-            alphabet
-            inputGrid
-            outputGrid
-            outputSubstitution
+         inputGridVariable
+         outputGridVariable
+         outputSubstitutionVariable
+         alphabet
+         inputGrid
+         outputGrid
+         outputSubstitution
+         selectedRow
+         selectedCol
    */
 
-   const selectCell = function (row, col) {
-      self.props.dispatch({type: 'SelectCell', row, col});
-   };
-
-   const setEditCell = function (editCell) {
-      self.props.dispatch({type: 'SetEditCell', editCell});
-   };
-
-   const validateDialog = function (editCell) {
-      const {selectedRow, selectedCol} = self.props.state;
-      self.props.dispatch({type: 'ApplyEdit', row: selectedRow, col: selectedCol, editCell});
-   };
-
-   const cancelDialog = function () {
-      self.props.dispatch({type: 'CancelEdit'});
-   };
-
-   const renderInstructionPython = function () {
-      const {outputSubstitutionVariable, inputGridVariable} = self.props.state;
-      const {alphabet, inputGrid} = self.props.scope;
-      const renderCell = function (cell) {
-         return "'" + getCellLetter(alphabet, cell) + "'";
-      };
-      // XXX afficher changeGrid dans le code python
-      return (
-         <Python.Assign>
-            <Python.Var name={outputSubstitutionVariable}/>
-            <Python.Call name="substitutionDepuisGrille">
-               <Python.Var name={inputGridVariable}/>
-               <Python.Grid grid={inputGrid} renderCell={renderCell} />
-            </Python.Call>
-         </Python.Assign>
-      );
-   };
-
-   const renderGrid = function() {
-      const {alphabet, outputGrid} = self.props.scope;
-      const {selectedRow, selectedCol} = self.props.state;
-      return <Grid alphabet={alphabet} grid={outputGrid} selectedRow={selectedRow} selectedCol={selectedCol} onClick={selectCell} />;
-   };
-
-   const renderSubstitution = function () {
-      const {scope} = self.props;
-      const {alphabet, outputSubstitution} = scope;
-      return <Substitution alphabet={alphabet} substitution={outputSubstitution}/>;
-   };
-
-   const renderEditCell = function () {
-      const {alphabet, inputGrid} = self.props.scope;
-      const {editCell, selectedRow, selectedCol} = self.props.state;
-      const initialCell = inputGrid[selectedRow][selectedCol];
-      return (
-         <EditCellDialog
-            alphabet={alphabet} initialCell={initialCell} editCell={editCell}
-            onOk={validateDialog} onCancel={cancelDialog} onChange={setEditCell} />
-      );
-   };
-
-   self.state = {
-      selectedCol: undefined,
-      selectedRow: undefined,
-      editCell: undefined
-   };
-
-   self.render = function () {
-      const {outputGridVariable, outputSubstitutionVariable, inputGridVariable, editCell} = self.props.state;
+   render () {
+      const {outputGridVariable, outputSubstitutionVariable, inputGridVariable, editCell} = this.props;
       const inputVars = [
          {label: "Grille playFair", name: inputGridVariable}
       ];
@@ -103,53 +46,91 @@ const Component = EpicComponent(self => {
       return (
          <div className='panel panel-default'>
             <div className='panel-heading'><span className='code'>
-               {renderInstructionPython()}
+               {this.renderInstructionPython()}
             </span></div>
             <div className='panel-body'>
-               {editCell && renderEditCell()}
+               {editCell && this.renderEditCell()}
                <Variables inputVars={inputVars} outputVars={outputVars} />
                <div className='grillesSection'>
                   <div className='blocGrille'>
                      <p>
                         {'Grille éditée : '}
-                        <Tooltip content={<p>Cliquez sur une case pour proposer ou modifier la lettre que vous pensez qu’elle contient.</p>}/>
+                        <Tooltip content={<p>{"Cliquez sur une case pour proposer ou modifier la lettre que vous pensez qu’elle contient."}</p>}/>
                      </p>
-                     {renderGrid()}
+                     {this.renderGrid()}
                   </div>
                   <div className='blocGrille'>
                      <p>
                         {'Substitution de bigrammes générée : '}
-                        <Tooltip content={<p>Sont affichées ci-dessous toutes les correspondances bigramme chiffré → bigramme déchiffré qui sont déduites de la grille.</p>}/>
+                        <Tooltip content={<p>{"Sont affichées ci-dessous toutes les correspondances bigramme chiffré → bigramme déchiffré qui sont déduites de la grille."}</p>}/>
                      </p>
-                     {renderSubstitution()}
+                     {this.renderSubstitution()}
                   </div>
                </div>
             </div>
          </div>
       );
+   }
+
+   selectCell = (row, col) => {
+      this.props.dispatch({type: this.props.actions.substitutionFromGridSelectCell, payload: {row, col}});
    };
 
-});
+   setEditCell = (editCell) => {
+      this.props.dispatch({type: this.props.actions.substitutionFromGridSetEditCell, payload: {editCell}});
+   };
 
-const compute = function (state, scope) {
-   const {editGrid} = state;
-   const {alphabet, inputGrid} = scope;
-   scope.outputGrid = applyGridEdit(alphabet, inputGrid, editGrid);
-   scope.outputSubstitution = getSubstitutionFromGridCells(scope.outputGrid);
-};
+   validateDialog = (editCell) => {
+      const {selectedRow, selectedCol} = this.props;
+      this.props.dispatch({type: this.props.actions.substitutionFromGridApplyEdit, payload: {row: selectedRow, col: selectedCol, editCell}});
+   };
+
+   cancelDialog = () => {
+      this.props.dispatch({type: this.props.actions.substitutionFromGridCancelEdit});
+   };
+
+   renderInstructionPython() {
+      const {alphabet, inputGrid, outputSubstitutionVariable, inputGridVariable} = this.props;
+      function renderCell(cell) {
+         return "'" + getCellLetter(alphabet, cell) + "'";
+      }
+      return (
+         <Python.Assign>
+            <Python.Var name={outputSubstitutionVariable}/>
+            <Python.Call name="substitutionDepuisGrille">
+               <Python.Var name={inputGridVariable}/>
+               <Python.Grid grid={inputGrid} renderCell={renderCell} />
+            </Python.Call>
+         </Python.Assign>
+      );
+   }
+
+   renderGrid() {
+      const {alphabet, outputGrid, selectedRow, selectedCol} = this.props;
+      return <Grid alphabet={alphabet} grid={outputGrid} selectedRow={selectedRow} selectedCol={selectedCol} onClick={this.selectCell} />;
+   }
+
+   renderSubstitution() {
+      const {alphabet, outputSubstitution} = this.props;
+      return <Substitution alphabet={alphabet} substitution={outputSubstitution}/>;
+   }
+
+   renderEditCell() {
+      const {alphabet, inputGrid, editCell, selectedRow, selectedCol} = this.props;
+      const initialCell = inputGrid[selectedRow][selectedCol];
+      return (
+         <EditCellDialog
+            alphabet={alphabet} initialCell={initialCell} editCell={editCell}
+            onOk={this.validateDialog} onCancel={this.cancelDialog} onChange={this.setEditCell} />
+      );
+   }
+
+}
 
 const noSelection = {
    selectedRow: undefined,
    selectedCol: undefined,
    editCell: undefined
-};
-
-const initialState = {
-   editGrid: [[{},{},{},{},{}],[{},{},{},{},{}],[{},{},{},{},{}],[{},{},{},{},{}],[{},{},{},{},{}]],
-   inputGridVariable: undefined,
-   outputGridVariable: undefined,
-   outputSubstitutionVariable: undefined,
-   ...noSelection
 };
 
 const getEditCell = function (editGrid, row, col) {
@@ -163,43 +144,81 @@ const getEditCell = function (editGrid, row, col) {
    return editRow[col];
 };
 
-export default function SubstitutionFromGrid () {
-   this.Component = Component;
-   this.compute = compute;
-   this.state = initialState;
-   this.dump = function (state) {
-      const {editGrid, inputGridVariable, outputGridVariable,
-         outputSubstitutionVariable} = state;
-      return {editGrid, inputGridVariable, outputGridVariable,
-         outputSubstitutionVariable};
-   };
-   this.load = function (dump) {
-      return {...initialState, ...dump};
-   };
-   this.reducers.SelectCell = function (state, action) {
-      const {row, col} = action;
-      const {editGrid} = state;
-      return {
-         ...state,
-         selectedRow: row,
-         selectedCol: col,
-         editCell: getEditCell(editGrid, row, col)
-      };
-   };
-   this.reducers.SetEditCell = function (state, action) {
-      const {editCell} = action;
-      return {...state, editCell};
-   };
-   this.reducers.ApplyEdit = function (state, action) {
-      const {editGrid} = state;
-      const {row, col, editCell} = action;
-      return {
-         ...state,
-         editGrid: at(row, at(col, put(editCell)))(editGrid),
-         ...noSelection
-      };
-   };
-   this.reducers.CancelEdit = function (state, action) {
-      return {...state, ...noSelection};
-   };
+function taskInitReducer (state, _action) {
+   const {taskData} = state;
+   const u = {q: 'unknown'};
+   const row = [u,u,u,u,u];
+   return update(state, {substitutionFromGrid: {
+      $set: {
+         ...noSelection,
+         editGrid: [row,row,row,row,row],
+      }
+   }});
+}
+
+function selectCellReducer (state, action) {
+   const {row, col} = action.payload;
+   const {editGrid} = state.substitutionFromGrid;
+   return update(state, {substitutionFromGrid: {
+      selectedRow: {$set: row},
+      selectedCol: {$set: col},
+      editCell: {$set: getEditCell(editGrid, row, col)}
+   }});
+}
+
+function setEditCellReducer (state, action) {
+   const {editCell} = action.payload;
+   return update(state, {substitutionFromGrid: {
+      editCell: {$set: editCell}
+   }});
+}
+
+function applyEditReducer (state, action) {
+   const {editGrid} = state;
+   const {row, col, editCell} = action.payload;
+   return update(state, {substitutionFromGrid: {
+      editGrid: {[row]: {[col]: {$set: editCell}}}
+   }});
+}
+
+function cancelEditReducer (state, action) {
+   return update(state, {substitutionFromGrid: {
+      selectedRow: {$set: undefined},
+      selectedCol: {$set: undefined},
+      editCell: {$set: undefined},
+   }});
+}
+
+function lateReducer (state) {
+   if (state.taskReady) {
+      const {alphabet, hintsGrid, substitutionFromGrid: {editGrid}} = state;
+      // XXX SubstitutionFromGrid.inputGrid <- Hints.outputGrid, Hints has no lateReducer
+      const outputGrid = applyGridEdit(alphabet, hintsGrid, editGrid);
+      const outputSubstitution = getSubstitutionFromGridCells(outputGrid);
+      state = update(state, {substitutionFromGrid: {
+         outputGrid: {$set: outputGrid},
+         outputSubstitution: {$set: outputSubstitution},
+      }});
+   }
+   return state;
+}
+
+export default {
+   actions: {
+      substitutionFromGridSelectCell: 'Task.SubstitutionFromGrid.SelectCell',
+      substitutionFromGridSetEditCell: 'Task.SubstitutionFromGrid.SetEditCell',
+      substitutionFromGridApplyEdit: 'Task.SubstitutionFromGrid.ApplyEdit',
+      substitutionFromGridCancelEdit: 'Task.SubstitutionFromGrid.CancelEdit',
+   },
+   actionReducers: {
+      taskInit: taskInitReducer,
+      substitutionFromGridSelectCell: selectCellReducer,
+      substitutionFromGridSetEditCell: setEditCellReducer,
+      substitutionFromGridApplyEdit: applyEditReducer,
+      substitutionFromGridCancelEdit: cancelEditReducer,
+   },
+   views: {
+      SubstitutionFromGrid: connect(SubstitutionFromGridSelector)(SubstitutionFromGrid)
+   },
+   lateReducer
 };
