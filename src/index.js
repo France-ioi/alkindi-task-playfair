@@ -1,5 +1,6 @@
 
 import algoreaReactTask from './algorea_react_task';
+import update from 'immutability-helper';
 
 import 'font-awesome/css/font-awesome.css';
 import 'bootstrap/dist/css/bootstrap.css';
@@ -68,33 +69,36 @@ function taskInitReducer (state, _action) {
 }
 
 function taskRefreshReducer (state, _action) {
-  const {taskData: {alphabet, hints}} = state;
-  // TODO: save user state, reload user state with hints
-  return {...state};
+  // All the work is done in the late reducers.
+  return state;
 }
 
 function getTaskAnswer (state) {
-  const {taskData: {alphabet}} = state;
-  // TODO: serialize user state to answer object
-  return {};
+  return {
+    gridEdits: state.substitutionFromGrid.editGrid,
+  };
 }
 
 function taskAnswerLoaded (state, {payload: {answer}}) {
-  const {taskData: {alphabet}} = state;
-  // TODO: reload user state from answer object
-  return state;
+  return update(state, {
+    substitutionFromGrid: {editGrid: {$set: dump.gridEdits}},
+    editSubstitution: {substitutionEdits: {$set: {}}},
+  });
 }
 
 function getTaskState (state) {
-  const {taskData: {alphabet}} = state;
-  // TODO: serialize user state (preserve more info than in answer)
-  return {};
+  return {
+    gridEdits: state.substitutionFromGrid.editGrid,
+    substitutionEdits: state.editSubstitution.substitutionEdits,
+    // not saved: state.bigramFrequencyAnalysis.substitutionEdits
+  };
 }
 
 function taskStateLoaded (state, {payload: {dump}}) {
-  const {taskData: {alphabet}} = state;
-  // TODO: reload user state (restore more info than from answer)
-  return state;
+  return update(state, {
+    substitutionFromGrid: {editGrid: {$set: dump.gridEdits}},
+    editSubstitution: {substitutionEdits: {$set: dump.substitutionEdits}},
+  });
 }
 
 const mostFrequentFrench = [
@@ -129,19 +133,3 @@ const mostFrequentFrench = [
    { v: "RA", r: 0.9 },
    { v: "IN", r: 0.8 }
 ];
-
-/*
-const cipheredText = "KQ CVG XSVR ACHZ JDSKQ CBAVHM, AKV TKMV QKAONPXTP, OD CSACQ MT ZTAZQ BONP NI MQUGQTN. BSPV QKAIHVACBQZ, PTSC PCDSVCQZTPL ICKLNADVC PVQ MCK TIEUTQQTYV KCQVTQCK MQ OD YLIVTQFZ. QKKQ KC QNSPZC IDVO PV HTCAF PDNMQ ZMGUKQ. NSSC KQ QNSPZCZQN MP CZQPAT FAVT DZCVPT MPASAZT NLYVCVPXLS. NSSC O FNLSUQZMH HQIPTSGB MQ ALISZMPAO I NSSC MQ TJDVQ KT QVD. OTBV O JFVFTMQV DS RSPY CIPQ OT ZHIQZL AG UYN TQ OD TSDHAVDJYLR AS IDITZIO. TSJZZM FT AKMQ MQ EUJCQXMZTZA P'CKA OIO TJAC OTBV KQO VKALBCK, MF KQO IM CQVACC IJ-ICKYLSC, TZ KQC IUMJGQXNPQ A'PVT MPCZQ ADVAQZT. FT FLAT ZQ MSAQ TP NSIPV TIK CQNFZ TFVDA TB IVUBSHGT M PV CAQZYV. CSVUMH OD BNSTQMBVC KSVNIPAT : FTPZCNQVCKCR KCK KQFNQNCK MQ NSQNT HZQPTA DZCT I TJAC PV, G QDJQ ACHZ, FQF TQ IHOQAUSDMH KQO CSPQTY. CDJQTY ST HNLIBAC IB PTDHZQ LPQTVP TQ MQ UVXPA-PCHE TQ NTQNDVTKMR MJV-ZTGC. KQ ZQCSOQNA LPQTVP KCND NSQNT FKQ. OTBV SLTISDKCB QQ HYN, BNTZRBQ KF HNDRA PTDHZQ IV MQYVYLSC TQ K YSPOCNDDVT CPIQNC-ZAVPF-CBAVHM. KQ ZQCSOQNA LPQTVP ALAC TQZQ IJUVKC ONV XTAZQ QST. FQKD ITPZT IVRT EUJCQXCK, KQL ICHN GZQAJQZY CLNZMPA KQ VPZMNL MQ PLR, YCK IPQNCK KQ TSMQ IB TIMQPNYV. \n254292628";
-const initialHintsGrid = [
-   [{q:'unknown'}, {q:'unknown'}, {q:'unknown'}, {q:'unknown'}, {q:'unknown'}],
-   [{q:'unknown'}, {l:11, q:'hint'}, {q:'unknown'}, {q:'unknown'}, {l:10, q:'hint'}],
-   [{q:'unknown'}, {l:16, q:'hint'}, {q:'unknown'}, {q:'unknown'}, {l: 4, q:'hint'}],
-   [{q:'unknown'}, {q:'unknown'}, {q:'unknown'}, {q:'unknown'}, {q:'unknown'}],
-   [{q:'unknown'}, {q:'unknown'}, {q:'unknown'}, {q:'unknown'}, {q:'unknown'}]
-];
-const task = {
-   cipher_text: cipheredText,
-   hints: initialHintsGrid
-};
-run({container: document.getElementById('container'), score: 500, task: task, view: 'workspace'});
-*/
