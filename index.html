@@ -16,13 +16,12 @@
     <script type="text/javascript">
         window.stringsLanguage = 'fr';
         var options = {
+            defaults: {
+                taskID: 'http%3A%2F%2Fconcours-alkindi.fr%2Ftasks%2F2018%2Fplayfair',
+                version: 1
+                },
             server_module: {
-                baseUrl: 'https://home.epixode.fr/bebras-modules/',
-                devel: {
-                    itemUrl: "?taskID=http%3A%2F%2Fconcours-alkindi.fr%2Ftasks%2F2018%2Fplayfair&version=1",
-                    randomSeed: 1,
-                    sHintsRequested: JSON.stringify([]),
-                }
+                baseUrl: 'https://home.epixode.fr/bebras-modules/'
             }
         };
         window.app = ReactTask.run(document.getElementById('container'), options);
