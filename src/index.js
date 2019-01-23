@@ -70,7 +70,7 @@ function taskInitReducer (state, _action) {
 
 function taskRefreshReducer (state, _action) {
   // All the work is done in the late reducers.
-  return state;
+  return {...state, hintsGrid: state.taskData.hints};
 }
 
 function getTaskAnswer (state) {
