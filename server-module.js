@@ -12,9 +12,10 @@ module.exports.config = {
 
 module.exports.taskData = function (args, callback) {
     generateTaskData(args.task).then(function ({privateData, publicData}) {
-        // TODO: save privateData
+        // TODO: cache privateData
         callback(null, publicData);
     }).catch(function (error) {
+        console.error(error);
         callback(error);
     });
 };
@@ -29,7 +30,7 @@ async function generateTaskData(task) {
     const gridPos = taskLines.length - 5;
     const cipherText = taskLines.slice(0, 2).join('\n');
     const firstname = taskLines[2];
-    const hints = parseGrid(hintsText);
+    const allHints = parseGrid(hintsText);
     const initialGrid = taskLines.slice(gridPos).join('\n');
     const initialHints = parseGrid(initialGrid);
     const privateData = {
@@ -38,14 +39,19 @@ async function generateTaskData(task) {
         cipherText,
         answerText,
         firstname,
-        hints,
+        allHints,
         initialHints
     };
+    const hints = parseGrid(initialGrid);
+    for (let hint of JSON.parse(task.hints_requested)) {
+        console.log('hint', hint);
+        hints[hint.row][hint.col] = {'q': 'hint', 'l': hint.rank};
+    }
     const publicData = {
         alphabet,
         cipherText,
         firstname,
-        hints: initialHints
+        hints,
     };
     return {privateData, publicData};
 }
@@ -65,10 +71,42 @@ function parseGrid(text) {
 }
 
 module.exports.requestHint = function (args, callback) {
-    return callback(new Error('hint already requested'));
+    generateTaskData(args.task).then(function ({privateData, publicData}) {
+        if (args.request.type === 'grid') {
+            const {row, col} = args.request;
+            const rank = privateData.allHints[row][col].l;
+            for (let hint of JSON.parse(args.task.hints_requested)) {
+                if (hint.rank === rank) {
+                    return callback(new Error('hint already requested'));
+                }
+            }
+            return callback(null, {...args.request, rank, letter: publicData.alphabet[rank]});
+        }
+        if (args.request.type === 'alphabet') {
+            const {rank} = args.request;
+            const hints = privateData.allHints;
+            for (let row = 0; row < hints.length; row++) {
+                for (let col = 0; col < hints[row].length; col++) {
+                    if (hints[row][col].l === rank) {
+                        return callback(null, {...args.request, row, col, letter: publicData.alphabet[rank]});
+                    }
+                }
+            }
+            return callback(new Error('requested letter is not in grid'));
+        }
+        return callback(new Error('invalid hint type'));
+    });
 };
 
 module.exports.gradeAnswer = function (args, task_data, callback) {
+    // args.random_seed // 2
+    // JSON.parse(args.hints_requested) // [{}]
+    // JSON.parse(args.answer.value).gridEdits // [[{letter: 'A'}]]
+    // args.min_score // 0
+    // args.max_score // 40
+    // args.no_score // 0
+    // task_data.alphabet // 'ABCDEFGHIJKLMNOPQRSTUVXYZ',
+    // task_data.cipherText // 'QS EIKF EIKFISQVI CIRH…'
     callback(null, {
         score: 0,
         message: "TODO",

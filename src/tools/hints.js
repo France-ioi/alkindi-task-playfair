@@ -8,14 +8,14 @@ import {Alphabet} from "../utils/alphabet_view";
 import {Grid} from "../utils/grid_view";
 
 function HintsSelector (state) {
-   const {alphabet, taskData: {hints: hintsGrid}} = state;
-   return {alphabet, hintsGrid};
+   const {actions, alphabet, taskData: {hints: hintsGrid}, hintRequest} = state;
+   return {actions, alphabet, hintsGrid, hintRequest};
 }
 
 class Hints extends React.PureComponent {
 
    render () {
-      const {outputGridVariable, score} = this.props;
+      const {outputGridVariable, score, hintRequest} = this.props;
       const outputVars = [{label: "Grille enregistrée", name: outputGridVariable}];
       return (
          <div className="panel panel-default hintsPlayFair">
@@ -58,36 +58,25 @@ class Hints extends React.PureComponent {
       );
    };
 
+   state = {hintQuery: undefined};
+
    validateDialog = () => {
       const {hintQuery} = this.state;
-      this.setState({hintState: "waiting"});
-      // TODO: dispatch(…)
-      /* this.props.scope.getHint(hintQuery, function (err) {
-         this.setState({hintState: err ? "error" : "received"});
-         const {dispatch, actions} = this.props;
-         dispatch({type: actions.requestHint, payload: {request}});
-      }); */
-   }
+      this.setState({hintQuery: undefined});
+      this.props.dispatch({type: this.props.actions.requestHint, payload: {request: hintQuery}});
+   };
 
    cancelDialog = () => {
-      this.setState({
-         hintQuery: undefined,
-         hintState: "idle"
-      });
+      this.setState({hintQuery: undefined});
+      this.props.dispatch({type: this.props.actions.hintRequestFeedbackCleared});
    };
 
    hintAlreadyObtained() {
-      this.setState({
-         hintQuery: undefined,
-         hintState: "invalid"
-      });
+      this.setState({hintQuery: undefined});
    }
 
-   prepareQuery(query) {
-      this.setState({
-         hintQuery: query,
-         hintState: "preparing"
-      });
+   setQuery(query) {
+      this.setState({hintQuery: query});
    }
 
    renderInstructionPython() {
@@ -128,8 +117,9 @@ class Hints extends React.PureComponent {
    }
 
    renderHintQuery() {
-      const {hintState} = this.state;
-      if (hintState === "preparing") {
+      const {hintRequest} = this.props;
+      const {hintQuery} = this.state;
+      if (!hintRequest && hintQuery) {
          const {alphabet, score} = this.props;
          const {hintQuery} = this.state;
          const cost = getQueryCost(hintQuery);
@@ -153,33 +143,27 @@ class Hints extends React.PureComponent {
                <OkCancel onOk={this.validateDialog} onCancel={this.cancelDialog}/>
             </div>
          );
-      } else if (hintState === "waiting") {
+      } else if (hintRequest && hintRequest.code <= 50) {
          return <div className="dialog">{"En attente de réponse du serveur"}</div>;
-      } else if (hintState === "received") {
+      } else if (hintRequest && hintRequest.success === true) {
          return (
             <div className="dialog">
                {"Indice obtenu, grille mise à jour"}
                <button type="button" className="btn-tool" onClick={this.cancelDialog}>{"OK"}</button>
             </div>
          );
-      } else if (hintState === "error") {
+      } else if (hintRequest && hintRequest.success === false) {
          return (
             <div className="dialog">
                {"Une erreur s'est produite et l'indice n'a pas été obtenu."}
                <button type="button" className="btn-tool" onClick={this.cancelDialog}>{"OK"}</button>
             </div>
          );
-      } else if (hintState === "invalid") {
-         return <div className="dialog">{"Cet indice a déjà été obtenu"}</div>;
+      } else if (hintRequest && hintRequest.error) {
+         return <div className="dialog">{hintRequest.error}</div>;
       }
-      return "";
+      return false;
    }
-
-   state = {
-      hintQuery: undefined,
-      hintValues: undefined,
-      hintState: "idle"
-   };
 
    clickGridCell = (row, col) => {
       if (this.state.hintState === "waiting") {
@@ -188,7 +172,7 @@ class Hints extends React.PureComponent {
       if (this.props.hintsGrid[row][col].q === "hint") {
          this.hintAlreadyObtained();
       } else {
-         this.prepareQuery({type: "grid", row: row, col: col});
+         this.setQuery({type: "grid", row: row, col: col});
       }
    };
 
@@ -201,7 +185,7 @@ class Hints extends React.PureComponent {
       if (qualifiers[rank] === "hint") {
          this.hintAlreadyObtained();
       } else {
-         this.prepareQuery({type: "alphabet", rank: rank});
+         this.setQuery({type: "alphabet", rank: rank});
       }
    };
 

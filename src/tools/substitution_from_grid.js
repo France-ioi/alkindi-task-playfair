@@ -16,18 +16,19 @@ function SubstitutionFromGridSelector (state) {
    const {actions, alphabet, hintsGrid} = state;
    const {selectedRow, selectedCol, editCell, editGrid, outputGrid, outputSubstitution} = state.substitutionFromGrid;
    return {actions, alphabet, selectedRow, selectedCol, editCell,
-      inputGrid: hintsGrid, outputGrid, outputSubstitution};
+      hintsGrid, editGrid, outputGrid, outputSubstitution};
 }
 
 class SubstitutionFromGrid extends React.PureComponent {
 
    /*
       props:
-         inputGridVariable
+         hintsGridVariable
          outputGridVariable
          outputSubstitutionVariable
          alphabet
-         inputGrid
+         hintsGrid
+         editGrid
          outputGrid
          outputSubstitution
          selectedRow
@@ -35,9 +36,9 @@ class SubstitutionFromGrid extends React.PureComponent {
    */
 
    render () {
-      const {outputGridVariable, outputSubstitutionVariable, inputGridVariable, editCell} = this.props;
+      const {outputGridVariable, outputSubstitutionVariable, hintsGridVariable, editCell} = this.props;
       const inputVars = [
-         {label: "Grille playFair", name: inputGridVariable}
+         {label: "Grille indices", name: hintsGridVariable}
       ];
       const outputVars = [
          {label: "Grille éditée", name: outputGridVariable},
@@ -90,7 +91,7 @@ class SubstitutionFromGrid extends React.PureComponent {
    };
 
    renderInstructionPython() {
-      const {alphabet, inputGrid, outputSubstitutionVariable, inputGridVariable} = this.props;
+      const {alphabet, editGrid, outputSubstitutionVariable, hintsGridVariable} = this.props;
       function renderCell(cell) {
          return "'" + getCellLetter(alphabet, cell) + "'";
       }
@@ -98,8 +99,8 @@ class SubstitutionFromGrid extends React.PureComponent {
          <Python.Assign>
             <Python.Var name={outputSubstitutionVariable}/>
             <Python.Call name="substitutionDepuisGrille">
-               <Python.Var name={inputGridVariable}/>
-               <Python.Grid grid={inputGrid} renderCell={renderCell} />
+               <Python.Var name={hintsGridVariable}/>
+               <Python.Grid grid={editGrid} renderCell={renderCell} />
             </Python.Call>
          </Python.Assign>
       );
@@ -116,8 +117,8 @@ class SubstitutionFromGrid extends React.PureComponent {
    }
 
    renderEditCell() {
-      const {alphabet, inputGrid, editCell, selectedRow, selectedCol} = this.props;
-      const initialCell = inputGrid[selectedRow][selectedCol];
+      const {alphabet, hintsGrid, editCell, selectedRow, selectedCol} = this.props;
+      const initialCell = hintsGrid[selectedRow][selectedCol];
       return (
          <EditCellDialog
             alphabet={alphabet} initialCell={initialCell} editCell={editCell}
@@ -192,7 +193,6 @@ function cancelEditReducer (state, action) {
 function lateReducer (state) {
    if (state.taskReady) {
       const {alphabet, hintsGrid, substitutionFromGrid: {editGrid}} = state;
-      // XXX SubstitutionFromGrid.inputGrid <- Hints.outputGrid, Hints has no lateReducer
       const outputGrid = applyGridEdit(alphabet, hintsGrid, editGrid);
       const outputSubstitution = getSubstitutionFromGridCells(outputGrid);
       state = update(state, {substitutionFromGrid: {

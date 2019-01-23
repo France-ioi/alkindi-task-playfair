@@ -25,7 +25,7 @@ class Workspace extends React.PureComponent {
         <views.Hints
           outputGridVariable="lettresGrilleIndices" />
         <views.SubstitutionFromGrid
-          inputGridVariable='lettresGrilleIndices'
+          hintsGridVariable='lettresGrilleIndices'
           outputGridVariable='lettresGrilleEditée'
           outputSubstitutionVariable='substitutionGénérée' />
         <views.EditSubstitution
