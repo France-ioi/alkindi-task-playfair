@@ -1,115 +1,195 @@
-
-const fs = require('fs');
-const path = require('path');
-const doAsync = require('doasync');
+const fs = require("fs");
+const path = require("path");
+const doAsync = require("doasync");
+const unidecode = require("unidecode");
+const sequenceMatcher = require("sequencematcher");
 const asyncFs = doAsync(fs);
 
-const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVXYZ';
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVXYZ";
 
 module.exports.config = {
-    cache_task_data: false
+  cache_task_data: false
 };
 
 module.exports.taskData = function (args, callback) {
-    generateTaskData(args.task).then(function ({privateData, publicData}) {
-        // TODO: cache privateData
-        callback(null, publicData);
-    }).catch(function (error) {
-        console.error(error);
-        callback(error);
+  generateTaskData(args.task)
+    .then(function ({privateData, publicData}) {
+      // TODO: cache privateData
+      callback(null, publicData);
+    })
+    .catch(function (error) {
+      console.error(error);
+      callback(error);
     });
 };
 
-async function generateTaskData(task) {
-    const baseDir = path.join(__dirname, "task_data");
-    const taskText = await asyncFs.readFile(path.join(baseDir, "task.txt"), 'utf8');
-    const hintsText = await asyncFs.readFile(path.join(baseDir, "hints.txt"), 'utf8');
-    const plainText = await asyncFs.readFile(path.join(baseDir, "plain.txt"), 'utf8');
-    const answerText = await asyncFs.readFile(path.join(baseDir, "answer.txt"), 'utf8');
-    const taskLines = taskText.trim().split('\n');
-    const gridPos = taskLines.length - 5;
-    const cipherText = taskLines.slice(0, 2).join('\n');
-    const firstname = taskLines[2];
-    const allHints = parseGrid(hintsText);
-    const initialGrid = taskLines.slice(gridPos).join('\n');
-    const initialHints = parseGrid(initialGrid);
-    const privateData = {
-        alphabet,
-        plainText,
-        cipherText,
-        answerText,
-        firstname,
-        allHints,
-        initialHints
-    };
-    const hints = parseGrid(initialGrid);
-    for (let hint of JSON.parse(task.hints_requested)) {
-        console.log('hint', hint);
-        hints[hint.row][hint.col] = {'q': 'hint', 'l': hint.rank};
-    }
-    const publicData = {
-        alphabet,
-        cipherText,
-        firstname,
-        hints,
-    };
-    return {privateData, publicData};
+async function generateTaskData (task) {
+  const baseDir = path.join(__dirname, "task_data");
+  const taskText = await asyncFs.readFile(
+    path.join(baseDir, "task.txt"),
+    "utf8"
+  );
+  const hintsText = await asyncFs.readFile(
+    path.join(baseDir, "hints.txt"),
+    "utf8"
+  );
+  const plainText = await asyncFs.readFile(
+    path.join(baseDir, "plain.txt"),
+    "utf8"
+  );
+  const answerText = await asyncFs.readFile(
+    path.join(baseDir, "answer.txt"),
+    "utf8"
+  );
+  const taskLines = taskText.trim().split("\n");
+  const gridPos = taskLines.length - 5;
+  const cipherText = taskLines.slice(0, 2).join("\n");
+  const firstname = taskLines[2];
+  const allHints = parseGrid(hintsText);
+  const initialGrid = taskLines.slice(gridPos).join("\n");
+  const initialHints = parseGrid(initialGrid);
+  const privateData = {
+    alphabet,
+    plainText,
+    cipherText,
+    answerText,
+    firstname,
+    allHints,
+    initialHints
+  };
+  const hints = parseGrid(initialGrid);
+  const hints_requested = getHintsRequested(task.hints_requested);
+  for (let hint of hints_requested) {
+    console.log("hint", hint);
+    hints[hint.row][hint.col] = {q: "hint", l: hint.rank};
+  }
+  const nHints = hints_requested.length;
+  const score = Math.max(0, 100 - nHints * 10);
+  const publicData = {
+    alphabet,
+    cipherText,
+    firstname,
+    hints,
+    score
+  };
+
+  return {privateData, publicData};
 }
 
-function parseGrid(text) {
-    const chars = text.split(/\s+/);
-    const hints = chars.map(function (c) {
-        const i = alphabet.indexOf(c);
-        return i == -1 ? {'q': 'unknown'} : {'q': 'hint', 'l': i};
-    });
-    const span = 5;
-    const rows = [];
-    for (let i = 0; i < chars.length; i += 5) {
-        rows.push(hints.slice(i, i + 5));
-    }
-    return rows;
+function getHintsRequested (hints_requested) {
+  return (hints_requested ? JSON.parse(hints_requested) : []).filter(
+    hr => hr !== null
+  );
+}
+
+function parseGrid (text) {
+  const chars = text.split(/\s+/);
+  const hints = chars.map(function (c) {
+    const i = alphabet.indexOf(c);
+    return i == -1 ? {q: "unknown"} : {q: "hint", l: i};
+  });
+  const span = 5;
+  const rows = [];
+  for (let i = 0; i < chars.length; i += 5) {
+    rows.push(hints.slice(i, i + 5));
+  }
+  return rows;
 }
 
 module.exports.requestHint = function (args, callback) {
-    generateTaskData(args.task).then(function ({privateData, publicData}) {
-        if (args.request.type === 'grid') {
-            const {row, col} = args.request;
-            const rank = privateData.allHints[row][col].l;
-            for (let hint of JSON.parse(args.task.hints_requested)) {
-                if (hint.rank === rank) {
-                    return callback(new Error('hint already requested'));
-                }
-            }
-            return callback(null, {...args.request, rank, letter: publicData.alphabet[rank]});
+  generateTaskData(args.task).then(function ({privateData, publicData}) {
+    const hints_requested = getHintsRequested(args.task.hints_requested);
+
+    if (args.request.type === "grid") {
+      const {row, col} = args.request;
+      const rank = privateData.allHints[row][col].l;
+      for (let hint of hints_requested) {
+        if (hint.rank === rank) {
+          return callback(new Error("hint already requested"));
         }
-        if (args.request.type === 'alphabet') {
-            const {rank} = args.request;
-            const hints = privateData.allHints;
-            for (let row = 0; row < hints.length; row++) {
-                for (let col = 0; col < hints[row].length; col++) {
-                    if (hints[row][col].l === rank) {
-                        return callback(null, {...args.request, row, col, letter: publicData.alphabet[rank]});
-                    }
-                }
-            }
-            return callback(new Error('requested letter is not in grid'));
+      }
+      return callback(null, {
+        ...args.request,
+        rank,
+        letter: publicData.alphabet[rank]
+      });
+    }
+    if (args.request.type === "alphabet") {
+      const {rank} = args.request;
+      const hints = privateData.allHints;
+      for (let row = 0; row < hints.length; row++) {
+        for (let col = 0; col < hints[row].length; col++) {
+          if (hints[row][col].l === rank) {
+            return callback(null, {
+              ...args.request,
+              row,
+              col,
+              letter: publicData.alphabet[rank]
+            });
+          }
         }
-        return callback(new Error('invalid hint type'));
-    });
+      }
+      return callback(new Error("requested letter is not in grid"));
+    }
+    return callback(new Error("invalid hint type"));
+  });
 };
 
 module.exports.gradeAnswer = function (args, task_data, callback) {
-    // args.random_seed // 2
-    // JSON.parse(args.hints_requested) // [{}]
-    // JSON.parse(args.answer.value).gridEdits // [[{letter: 'A'}]]
-    // args.min_score // 0
-    // args.max_score // 40
-    // args.no_score // 0
-    // task_data.alphabet // 'ABCDEFGHIJKLMNOPQRSTUVXYZ',
-    // task_data.cipherText // 'QS EIKF EIKFISQVI CIRH…'
-    callback(null, {
-        score: 0,
-        message: "TODO",
+  // args.random_seed // 2
+  // JSON.parse(args.hints_requested) // [{}]
+  // JSON.parse(args.answer.value).gridEdits // [[{letter: 'A'}]]
+  // args.min_score // 0
+  // args.max_score // 40
+  // args.no_score // 0
+  // task_data.alphabet // 'ABCDEFGHIJKLMNOPQRSTUVXYZ',
+  // task_data.cipherText // 'QS EIKF EIKFISQVI CIRH…'
+
+  const hintsRequested = getHintsRequested(args.answer.hints_requested);
+  const nHints = hintsRequested.length;
+
+  const {gridEdits} = JSON.parse(args.answer.value);
+
+  generateTaskData(args.task)
+    .then(function ({privateData, publicData}) {
+      let score = 0,
+        message = ` Vous avez utilisé ${nHints} indice${
+          nHints > 1 ? "s" : ""
+        }.`;
+
+      const answerGrid = privateData.allHints;
+      const hints = publicData.hints;
+      let same = true;
+
+      for (let row = 0; row < hints.length; row++) {
+        for (let col = 0; col < hints[row].length; col++) {
+          if (hints[row][col].q !== "hint") {
+            const rank = answerGrid[row][col].l;
+            const correctLetter = publicData.alphabet[rank];
+            if (correctLetter !== gridEdits[row][col].letter) {
+              same = false;
+            }
+          }
+        }
+      }
+
+      if (same) {
+        score = Math.max(0, 100 - nHints * 10);
+        message =
+          "Bravo, vous avez retrouvé la clé de déchiffrement." + message;
+      } else {
+        score = 0;
+        message = "La clé de déchiffrement est incorrecte." + message;
+      }
+
+      callback(null, {
+        score,
+        message
+      });
+    })
+    .catch(function (error) {
+      console.error(error);
+      callback(error);
     });
 };
 
@@ -207,7 +287,7 @@ def reset_hints(task):
 def fix_hints(hints):
     for row_cells in hints:
         for cell in row_cells:
-            q = cell.get('q')
+            q = cell['q'])
             if q == 'hint':
                 return False
             if q == 'confirmed':
@@ -243,9 +323,9 @@ def grade(task, data):
     # Scores above score_threshold are considered solutions.
     score_threshold = Decimal('10')
 
-    in_n1 = canon_number(data.get('n1', ''))
-    in_n2 = canon_number(data.get('n2', ''))
-    in_ad = canon_address(data.get('a', ''))
+    in_n1 = canon_number(data['n1'], ''))
+    in_n2 = canon_number(data['n2'], ''))
+    in_ad = canon_address(data['a'], ''))
 
     if len(in_ad) > 100 or len(in_n1) > 2 or len(in_n2) > 3:
         return None

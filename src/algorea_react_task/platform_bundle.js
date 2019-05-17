@@ -7,7 +7,7 @@
 import {call, put, select, takeEvery} from 'redux-saga/effects';
 import stringify from 'json-stable-stringify-without-jsonify';
 
-function appInitReducer (state, {payload: {taskToken, options}}) {
+function appInitReducer (state, {payload: {_taskToken, _options}}) {
     return {...state, grading: {}};
 }
 
@@ -39,6 +39,7 @@ function* taskGetViewsEventSaga ({payload: {success}}) {
 
 function taskUpdateTokenEventReducer (state, {payload: {token}}) {
     if (token === null) {
+        // eslint-disable-next-line
         console.warn('ignored task.updateToken with null token');
         return state;
     }
@@ -116,9 +117,8 @@ function* taskLoadEventSaga ({payload: {views: _views, success, error}}) {
     }
 }
 
-function* taskGradeAnswerEventSaga ({payload: {answer, answerToken, success, error}}) {
+function* taskGradeAnswerEventSaga ({payload: {_answer, answerToken, success, error}}) {
     const {taskAnswerGraded} = yield select(({actions}) => actions);
-    let result;
     try {
         const {taskToken, platformApi: {getTaskParams}, serverApi} = yield select(state => state);
         const {minScore, maxScore, noScore} = yield call(getTaskParams, null, null);
