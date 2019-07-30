@@ -12,7 +12,7 @@ function TextInputSelector (state) {
 }
 
 class TextInput extends React.PureComponent {
-  render() {
+  render () {
     const {outputVariable, text} = this.props;
     const inputVars = [];
     const outputVars = [{label: "Texte chiffré", name: outputVariable}];

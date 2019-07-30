@@ -113,7 +113,7 @@ class Hints extends React.PureComponent {
   }
 
   renderInstructionPython () {
-    const {alphabet, hintsGrid, outputGridVariable} = this.props;
+    const {hintsGrid, outputGridVariable} = this.props;
     return (
       <Python.Assign>
         <Python.Var name={outputGridVariable} />
